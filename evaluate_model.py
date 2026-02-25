@@ -128,27 +128,29 @@ def _format_period_label(start: pd.Timestamp, end: pd.Timestamp) -> str:
 def _resolve_historical_scores(
     model_score: pd.DataFrame,
     latest_fs_time: pd.Timestamp,
-    historical_period_start: str | pd.Timestamp | None,
-    historical_period_end: str | pd.Timestamp | None,
+    historical_period: str | pd.Timestamp | None,
 ) -> tuple[pd.DataFrame, str]:
     scored = model_score.copy()
     scored["fs_time"] = pd.to_datetime(scored["fs_time"], errors="coerce")
-    historical = scored.loc[scored["fs_time"] < latest_fs_time].copy()
-    if historical.empty:
+    historical_all = scored.loc[scored["fs_time"] < latest_fs_time].copy()
+    if historical_all.empty:
         raise ValueError("No historical scores are available before the newest actual model score date.")
 
-    start = pd.to_datetime(historical_period_start) if historical_period_start is not None else historical["fs_time"].min()
-    end = pd.to_datetime(historical_period_end) if historical_period_end is not None else historical["fs_time"].max()
-    if start > end:
-        raise ValueError("historical_period_start must be earlier than or equal to historical_period_end.")
+    if historical_period is None:
+        selected = historical_all.loc[historical_all["fs_time"] == historical_all["fs_time"].max()].copy()
+        ts = selected["fs_time"].iloc[0]
+        return selected, _format_period_label(ts, ts)
 
-    historical = historical.loc[(historical["fs_time"] >= start) & (historical["fs_time"] <= end)].copy()
+    selected_period = pd.to_datetime(historical_period).to_period("M")
+    historical = historical_all.loc[historical_all["fs_time"].dt.to_period("M") == selected_period].copy()
     if historical.empty:
-        raise ValueError("Historical period filter returned no model scores. Adjust historical period boundaries.")
-
-    actual_start = historical["fs_time"].min()
-    actual_end = historical["fs_time"].max()
-    return historical, _format_period_label(actual_start, actual_end)
+        available = sorted(historical_all["fs_time"].dt.strftime("%Y-%m-%d").unique())
+        raise ValueError(
+            "No historical scores found for requested period. "
+            f"Requested={selected_period}; available snapshots={available}"
+        )
+    ts = historical["fs_time"].iloc[0]
+    return historical, _format_period_label(ts, ts)
 
 
 def _required_cutoff_for_desired_rate(metrics: pd.DataFrame, desired_rate: float) -> int:
@@ -158,15 +160,23 @@ def _required_cutoff_for_desired_rate(metrics: pd.DataFrame, desired_rate: float
     return int(eligible.max())
 
 
-def _success_bar_colors(metrics: pd.DataFrame, required_cutoff: int) -> list[str]:
-    percentiles = metrics["contacted_percentile"].astype(int)
-    colors: list[str] = []
-    for percentile in percentiles:
+def _success_rate_segments(
+    metrics: pd.DataFrame,
+    required_cutoff: int,
+) -> tuple[list[float | None], list[float | None]]:
+    selected: list[float | None] = []
+    outside: list[float | None] = []
+    for percentile, sr in zip(
+        metrics["contacted_percentile"].astype(int),
+        metrics["cumulative_success_rate_pct"].astype(float),
+    ):
         if percentile <= required_cutoff:
-            colors.append("rgba(0, 87, 217, 0.80)")
+            selected.append(sr)
+            outside.append(None)
         else:
-            colors.append("rgba(148, 163, 184, 0.28)")
-    return colors
+            selected.append(None)
+            outside.append(sr)
+    return selected, outside
 
 
 def _make_figure(
@@ -228,15 +238,26 @@ def _make_figure(
         row=1,
         col=1,
     )
+    selected_sr_segment, outside_sr_segment = _success_rate_segments(metrics=metrics, required_cutoff=required_cutoff)
     fig.add_trace(
-        go.Bar(
+        go.Scatter(
             x=x,
-            y=metrics["cumulative_success_rate_pct"],
-            name="Success Rate",
-            marker={
-                "color": _success_bar_colors(metrics=metrics, required_cutoff=required_cutoff),
-                "line": {"color": "rgba(15, 23, 42, 0.12)", "width": 0.6},
-            },
+            y=selected_sr_segment,
+            mode="lines",
+            name="Success Rate (Selected Range)",
+            line={"color": "#0057D9", "width": 3},
+            hovertemplate="Contacted: %{x}%<br>Success rate: %{y:.2f}%<extra></extra>",
+        ),
+        row=2,
+        col=1,
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=x,
+            y=outside_sr_segment,
+            mode="lines",
+            name="Success Rate (Outside Range)",
+            line={"color": "rgba(148,163,184,0.48)", "width": 2},
             hovertemplate="Contacted: %{x}%<br>Success rate: %{y:.2f}%<extra></extra>",
         ),
         row=2,
@@ -536,7 +557,7 @@ def _make_campaign_selection_figure(
         vertical_spacing=0.18,
         subplot_titles=(
             "Estimated Success Rate Benchmark",
-            "Cumulative Estimated Success Rate Within Campaign Volume",
+            "Cumulative Success Rate Within Campaign Volume",
         ),
     )
 
@@ -561,25 +582,28 @@ def _make_campaign_selection_figure(
     )
 
     fig.add_trace(
-        go.Scatter(
-            x=selected_curve["contact_share_pct"],
-            y=selected_curve["estimated_success_rate_pct"],
-            mode="lines",
-            line={"color": "#2563EB", "width": 2.5},
-            name=f"Selected clients (estimated, {actual_period_label})",
-            hovertemplate="Within selected set: %{x}%<br>Estimated SR: %{y:.2f}%<extra></extra>",
+        go.Bar(
+            x=model_guided_curve["contact_share_pct"],
+            y=model_guided_curve["estimated_success_rate_pct"],
+            name=f"Model-guided cumulative SR ({actual_period_label})",
+            marker={
+                "color": "rgba(37,99,235,0.82)",
+                "line": {"color": "rgba(255,255,255,0.65)", "width": 0.5},
+            },
+            hovertemplate="Model-guided within campaign volume: %{x}%<br>Cumulative SR: %{y:.2f}%<extra></extra>",
+            opacity=0.95,
         ),
         row=2,
         col=1,
     )
     fig.add_trace(
         go.Scatter(
-            x=model_guided_curve["contact_share_pct"],
-            y=model_guided_curve["estimated_success_rate_pct"],
+            x=selected_curve["contact_share_pct"],
+            y=selected_curve["estimated_success_rate_pct"],
             mode="lines",
             line={"color": "#0EA5E9", "width": 2.0, "dash": "dash"},
-            name=f"Model-guided same volume (estimated, {actual_period_label})",
-            hovertemplate="Within model-guided set: %{x}%<br>Estimated SR: %{y:.2f}%<extra></extra>",
+            name=f"Selected cumulative SR ({actual_period_label})",
+            hovertemplate="Selected clients within campaign volume: %{x}%<br>Cumulative SR: %{y:.2f}%<extra></extra>",
         ),
         row=2,
         col=1,
@@ -588,6 +612,7 @@ def _make_campaign_selection_figure(
     selected_full = float(selection_summary["selected_rate_estimated_pct"])
     model_full = float(selection_summary["model_guided_rate_estimated_pct"])
     fig.update_layout(
+        barmode="overlay",
         annotations=[
             dict(
                 x=100,
@@ -627,7 +652,7 @@ def _make_campaign_selection_figure(
     )
     fig.update_yaxes(title_text="Success Rate (%)", row=1, col=1, rangemode="tozero", gridcolor="#E2E8F0")
     fig.update_yaxes(title_text="Estimated Success Rate (%)", row=2, col=1, rangemode="tozero", gridcolor="#E2E8F0")
-    fig.update_xaxes(title_text="Contacted Share Within Campaign Volume (%)", row=2, col=1, dtick=10)
+    fig.update_xaxes(title_text="Contacted Share Within Campaign Volume (%)", row=2, col=1, dtick=10, range=[1, 100])
     return fig
 
 
@@ -636,8 +661,7 @@ def EvaluateModel(
     seed: int | None = 42,
     include_campaign_selection: bool = False,
     campaign_clients: pd.DataFrame | None = None,
-    historical_period_start: str | pd.Timestamp | None = None,
-    historical_period_end: str | pd.Timestamp | None = None,
+    historical_period: str | pd.Timestamp | None = None,
 ) -> Path:
     model_score, target_store, _ = create_simulated_tables(seed=seed)
     model_score = model_score.copy()
@@ -687,8 +711,7 @@ def EvaluateModel(
         historical_scores, historical_period_label = _resolve_historical_scores(
             model_score=model_score,
             latest_fs_time=latest_fs_time,
-            historical_period_start=historical_period_start,
-            historical_period_end=historical_period_end,
+            historical_period=historical_period,
         )
         historical_portfolio_rate_pct = _historical_portfolio_event_rate(
             historical_scores=historical_scores,
@@ -1039,7 +1062,7 @@ def EvaluateModel(
         <section class="guide-section">
           <h3>How to read the bottom chart</h3>
           <p>
-            Bars show cumulative success rate by cutoff depth. This indicates expected conversion quality
+            The line shows cumulative success rate by cutoff depth. This indicates expected conversion quality
             in the contacted population.
           </p>
           <strong>Desired success rate control</strong>
@@ -1047,10 +1070,10 @@ def EvaluateModel(
             Set a target rate and use the reported required cutoff to choose the largest audience
             that still meets your quality target.
           </p>
-          <strong>Bar colors</strong>
+          <strong>Line colors</strong>
           <p>
-            Blue bars are inside the chosen percentile range for your desired success rate.
-            Gray-shadow bars are outside the chosen range.
+            Blue line segment is inside the chosen percentile range for your desired success rate.
+            Gray-shadow segment is outside the chosen range.
           </p>
         </section>
       </aside>
@@ -1088,13 +1111,6 @@ def EvaluateModel(
       return required;
     }}
 
-    function barColorForRequired(point, required) {{
-      if (point.p <= required) {{
-        return "rgba(0,87,217,0.80)";
-      }}
-      return "rgba(148,163,184,0.28)";
-    }}
-
     function updateDesiredRateUi(desiredRate, forcedRequired = null) {{
       const required = forcedRequired === null ? requiredCutoffForDesired(desiredRate) : forcedRequired;
       document.getElementById("desired-rate-value").textContent = `${{desiredRate.toFixed(1)}}%`;
@@ -1104,10 +1120,14 @@ def EvaluateModel(
       if (!gd || !gd.layout || !gd.layout.annotations || gd.layout.annotations.length < 5) {{
         return false;
       }}
-      const colors = cutoffData.map((point) => barColorForRequired(point, required));
+      const selectedSegment = cutoffData.map((point) => point.p <= required ? point.sr : null);
+      const outsideSegment = cutoffData.map((point) => point.p > required ? point.sr : null);
       Plotly.restyle(gd, {{
-        "marker.color": [colors]
+        "y": [selectedSegment]
       }}, [3]);
+      Plotly.restyle(gd, {{
+        "y": [outsideSegment]
+      }}, [4]);
       Plotly.relayout(gd, {{
         "shapes[2].x0": required,
         "shapes[2].x1": required,
