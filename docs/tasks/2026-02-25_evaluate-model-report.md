@@ -637,3 +637,22 @@ Add an optional campaign-selection mode where users pass selected client keys an
 
 ## Final Summary
 Slice 11 completed. Report now supports optional campaign-selection comparison mode with additional potential-success benchmarking charts, while keeping the original two charts for direct comparison.
+
+---
+
+# Slice 12 - Notebook Integration for Campaign Selection Mode
+
+## Task Contract
+
+### Goal
+Update the testing notebook to call `EvaluateModel` with campaign selection dataframe input and produce the compare-mode report.
+
+### Tactical Plan
+- [x] Rename notebook variable from `situation` to `campaign_clients` in source cells.
+- [x] Update notebook report-generation cell to run both baseline and campaign-selection modes.
+- [x] Update notebook display cell to link baseline and campaign-selection reports.
+- [x] Run regression tests for codebase integrity.
+
+## Progress Log
+- 2026-02-25: Updated `notebooks/simulated_data_testing.ipynb` to use `campaign_clients` naming and call `EvaluateModel(..., include_campaign_selection=True, campaign_clients=campaign_clients)`.
+- 2026-02-25: Notebook now generates `model_evaluation_report_campaign_selection.html` alongside baseline output.
