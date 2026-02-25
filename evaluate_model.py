@@ -192,41 +192,121 @@ def _resolve_report_language(language: str) -> dict[str, str]:
             "label_desired_rate_slider": "Desired success rate",
             "required_cutoff_prefix": "Required cutoff",
             "top_word": "Top",
+            "abbr_sr": "SR",
+            "abbr_gain": "Gain",
             "campaign_section_title": "Campaign Selection Potential",
             "campaign_intro": "Expected successes are estimated from model score sums on the campaign filtered base.",
             "campaign_distribution_title": "Campaign Client Distribution by Score Percentile",
             "campaign_rate_compare_title": "Default Success Rate Comparison",
             "campaign_gain_title": "Campaign Base Cumulative Gain",
             "campaign_success_title": "Campaign Base Cumulative Success Rate",
+            "top_gain_title": "Cumulative Gain Chart",
+            "top_success_title": "Cumulative Success Rate Chart",
             "tooltip_how_to_read": "How to read this chart",
             "number_locale": "en-US",
         },
         "cs": {
             "html_lang": "cs",
-            "report_title": "Vyhodnoceni modelu",
-            "header_title": "Vyhodnoceni vykonnosti modelu",
-            "header_subtitle": "Kumulativni gain a kumulativni uspesnost se synchronizovanymi pohledy kampanoveho scenare.",
-            "kpi_selected_cutoff": "Vyberovy cut-off",
+            "report_title": "Vyhodnocení modelu",
+            "header_title": "Vyhodnocení výkonnosti modelu",
+            "header_subtitle": "Kumulativní zisk a kumulativní úspěšnost se synchronizovanými pohledy scénáře kampaně.",
+            "kpi_selected_cutoff": "Výběrový cut-off",
             "kpi_lift_gain": "Lift / Gain",
-            "kpi_success_rate": "Uspesnost @ cut-off",
-            "kpi_captured": "Zachycene uspechy",
-            "label_cutoff_slider": "Vyberovy percentil cut-off",
-            "label_desired_rate_slider": "Pozadovana uspesnost",
-            "required_cutoff_prefix": "Pozadovany cut-off",
+            "kpi_success_rate": "Úspěšnost @ cut-off",
+            "kpi_captured": "Zachycené úspěchy",
+            "label_cutoff_slider": "Výběrový percentil cut-off",
+            "label_desired_rate_slider": "Požadovaná úspěšnost",
+            "required_cutoff_prefix": "Požadovaný cut-off",
             "top_word": "Top",
-            "campaign_section_title": "Potencial vyberu kampane",
-            "campaign_intro": "Ocekavane uspechy jsou odhadnuty ze souctu score v kampanove filtrovane bazi.",
-            "campaign_distribution_title": "Rozlozeni klientu kampane podle score percentilu",
-            "campaign_rate_compare_title": "Porovnani vychozi uspesnosti",
-            "campaign_gain_title": "Kumulativni gain kampanove baze",
-            "campaign_success_title": "Kumulativni uspesnost kampanove baze",
-            "tooltip_how_to_read": "Jak cist tento graf",
+            "abbr_sr": "ÚSP",
+            "abbr_gain": "zisk",
+            "campaign_section_title": "Potenciál výběru kampaně",
+            "campaign_intro": "Očekávané úspěchy jsou odhadnuty ze součtu skóre v kampaní filtrované bázi.",
+            "campaign_distribution_title": "Rozložení klientů kampaně podle percentilu skóre",
+            "campaign_rate_compare_title": "Porovnání výchozí úspěšnosti",
+            "campaign_gain_title": "Kumulativní zisk kampaně",
+            "campaign_success_title": "Kumulativní úspěšnost kampaně",
+            "top_gain_title": "Graf kumulativního zisku",
+            "top_success_title": "Graf kumulativní úspěšnosti",
+            "tooltip_how_to_read": "Jak číst tento graf",
             "number_locale": "cs-CZ",
         },
     }
     if language not in translations:
         raise ValueError("language must be one of: en, cs")
     return translations[language]
+
+
+def _resolve_chart_text(language: str) -> dict[str, str]:
+    texts: dict[str, dict[str, str]] = {
+        "en": {
+            "subplot_gain": "Cumulative Gain Chart",
+            "subplot_success": "Cumulative Success Rate Chart",
+            "trace_model": "Model",
+            "trace_random": "Random",
+            "trace_ideal": "Ideal",
+            "trace_success_selected": "Success Rate (Selected Range)",
+            "trace_success_outside": "Success Rate (Outside Range)",
+            "trace_success": "Success Rate",
+            "x_contacted_pct": "Contacted Population Percentile (%)",
+            "y_gain_share": "Gain / Share (%)",
+            "y_success_rate": "Success Rate (%)",
+            "annot_top": "Top {p}% -> SR {sr:.1f}%, Gain {gain:.1f}%",
+            "annot_ks": "Optimal cutoff (max KS {ks:.1f}pp): {p}%",
+            "annot_required": "Needed for target SR: {p}%",
+            "hover_gain": "Contacted: %{x}%<br>Gain: %{y:.2f}%<extra></extra>",
+            "hover_baseline_gain": "Contacted: %{x}%<br>Baseline gain: %{y:.2f}%<extra></extra>",
+            "hover_ideal_gain": "Contacted: %{x}%<br>Ideal gain: %{y:.2f}%<extra></extra>",
+            "hover_success_rate": "Contacted: %{x}%<br>Success rate: %{y:.2f}%<extra></extra>",
+            "dist_all_clients": "All scored clients",
+            "dist_campaign_clients": "Campaign clients",
+            "dist_hover_all": "Percentile: %{x}<br>All clients: %{y}<extra></extra>",
+            "dist_hover_campaign": "Percentile: %{x}<br>Campaign clients: %{y}<extra></extra>",
+            "dist_x_title": "Model Score Percentile",
+            "dist_y_title": "Client Count",
+            "rate_bar_1": "Whole Base\n(Default)",
+            "rate_bar_2": "Campaign Clients\n(Default)",
+            "rate_bar_3": "Top-N by Score\n(Same Volume)",
+            "rate_hover": "%{x}<br>Expected success rate: %{y:.2f}%<extra></extra>",
+            "rate_y_title": "Expected Success Rate (%)",
+            "figure_title": "Model Performance",
+        },
+        "cs": {
+            "subplot_gain": "Graf kumulativního zisku",
+            "subplot_success": "Graf kumulativní úspěšnosti",
+            "trace_model": "Model",
+            "trace_random": "Náhoda",
+            "trace_ideal": "Ideál",
+            "trace_success_selected": "Úspěšnost (vybraný rozsah)",
+            "trace_success_outside": "Úspěšnost (mimo rozsah)",
+            "trace_success": "Úspěšnost",
+            "x_contacted_pct": "Percentil oslovené populace (%)",
+            "y_gain_share": "Zisk / podíl (%)",
+            "y_success_rate": "Úspěšnost (%)",
+            "annot_top": "Top {p}% -> ÚSP {sr:.1f} %, zisk {gain:.1f} %",
+            "annot_ks": "Optimální cut-off (max KS {ks:.1f} b.): {p} %",
+            "annot_required": "Nutné pro cílovou úspěšnost: {p} %",
+            "hover_gain": "Osloveno: %{x}%<br>Zisk: %{y:.2f}%<extra></extra>",
+            "hover_baseline_gain": "Osloveno: %{x}%<br>Základní zisk: %{y:.2f}%<extra></extra>",
+            "hover_ideal_gain": "Osloveno: %{x}%<br>Ideální zisk: %{y:.2f}%<extra></extra>",
+            "hover_success_rate": "Osloveno: %{x}%<br>Úspěšnost: %{y:.2f}%<extra></extra>",
+            "dist_all_clients": "Všichni skórovaní klienti",
+            "dist_campaign_clients": "Klienti kampaně",
+            "dist_hover_all": "Percentil: %{x}<br>Všichni klienti: %{y}<extra></extra>",
+            "dist_hover_campaign": "Percentil: %{x}<br>Klienti kampaně: %{y}<extra></extra>",
+            "dist_x_title": "Percentil skóre modelu",
+            "dist_y_title": "Počet klientů",
+            "rate_bar_1": "Celá báze\n(výchozí)",
+            "rate_bar_2": "Klienti kampaně\n(výchozí)",
+            "rate_bar_3": "Top-N dle skóre\n(stejný objem)",
+            "rate_hover": "%{x}<br>Očekávaná úspěšnost: %{y:.2f}%<extra></extra>",
+            "rate_y_title": "Očekávaná úspěšnost (%)",
+            "figure_title": "Výkonnost modelu",
+        },
+    }
+    if language not in texts:
+        raise ValueError("language must be one of: en, cs")
+    return texts[language]
 
 
 def _required_cutoff_for_desired_rate(metrics: pd.DataFrame, desired_rate: float) -> int:
@@ -269,7 +349,10 @@ def _make_figure(
     metrics: pd.DataFrame,
     default_percentile: int = 20,
     desired_success_rate: float | None = None,
+    chart_text: dict[str, str] | None = None,
 ) -> go.Figure:
+    if chart_text is None:
+        chart_text = _resolve_chart_text("en")
     if desired_success_rate is None:
         desired_success_rate = float(
             metrics.loc[metrics["contacted_percentile"] == default_percentile, "cumulative_success_rate_pct"].iloc[0]
@@ -279,7 +362,7 @@ def _make_figure(
         cols=1,
         shared_xaxes=True,
         vertical_spacing=0.09,
-        subplot_titles=("Cumulative Gain Chart", "Cumulative Success Rate Chart"),
+        subplot_titles=(chart_text["subplot_gain"], chart_text["subplot_success"]),
     )
 
     x = metrics["contacted_percentile"]
@@ -292,10 +375,10 @@ def _make_figure(
             x=x,
             y=metrics["gain_pct"],
             mode="lines+markers",
-            name="Model",
+            name=chart_text["trace_model"],
             line={"color": "#0057D9", "width": 3},
             marker={"size": 4},
-            hovertemplate="Contacted: %{x}%<br>Gain: %{y:.2f}%<extra></extra>",
+            hovertemplate=chart_text["hover_gain"],
         ),
         row=1,
         col=1,
@@ -305,9 +388,9 @@ def _make_figure(
             x=x,
             y=metrics["random_baseline_gain_pct"],
             mode="lines",
-            name="Random",
+            name=chart_text["trace_random"],
             line={"color": "#94A3B8", "width": 1.5, "dash": "dash"},
-            hovertemplate="Contacted: %{x}%<br>Baseline gain: %{y:.2f}%<extra></extra>",
+            hovertemplate=chart_text["hover_baseline_gain"],
         ),
         row=1,
         col=1,
@@ -317,9 +400,9 @@ def _make_figure(
             x=x,
             y=metrics["ideal_gain_pct"],
             mode="lines",
-            name="Ideal",
+            name=chart_text["trace_ideal"],
             line={"color": "#CBD5E1", "width": 1.5, "dash": "dot"},
-            hovertemplate="Contacted: %{x}%<br>Ideal gain: %{y:.2f}%<extra></extra>",
+            hovertemplate=chart_text["hover_ideal_gain"],
         ),
         row=1,
         col=1,
@@ -330,9 +413,9 @@ def _make_figure(
             x=x,
             y=selected_sr_segment,
             mode="lines",
-            name="Success Rate (Selected Range)",
+            name=chart_text["trace_success_selected"],
             line={"color": "#0057D9", "width": 3},
-            hovertemplate="Contacted: %{x}%<br>Success rate: %{y:.2f}%<extra></extra>",
+            hovertemplate=chart_text["hover_success_rate"],
         ),
         row=2,
         col=1,
@@ -342,16 +425,16 @@ def _make_figure(
             x=x,
             y=outside_sr_segment,
             mode="lines",
-            name="Success Rate (Outside Range)",
+            name=chart_text["trace_success_outside"],
             line={"color": "rgba(148,163,184,0.48)", "width": 2},
-            hovertemplate="Contacted: %{x}%<br>Success rate: %{y:.2f}%<extra></extra>",
+            hovertemplate=chart_text["hover_success_rate"],
         ),
         row=2,
         col=1,
     )
 
     fig.update_xaxes(
-        title_text="Contacted Population Percentile (%)",
+        title_text=chart_text["x_contacted_pct"],
         row=2,
         col=1,
         range=[1, 100],
@@ -364,7 +447,7 @@ def _make_figure(
     )
     fig.update_xaxes(showticklabels=False, row=1, col=1)
     fig.update_yaxes(
-        title_text="Gain / Share (%)",
+        title_text=chart_text["y_gain_share"],
         row=1,
         col=1,
         range=[0, 105],
@@ -375,7 +458,7 @@ def _make_figure(
     )
     fig.update_yaxes(zeroline=False)
     fig.update_yaxes(
-        title_text="Success Rate (%)",
+        title_text=chart_text["y_success_rate"],
         row=2,
         col=1,
         range=[0, max(5.0, float(metrics["cumulative_success_rate_pct"].max()) * 1.08)],
@@ -396,7 +479,7 @@ def _make_figure(
             y=selected_gain,
             xref="x",
             yref="y",
-            text=f"Top {default_percentile}% -> SR {selected_sr:.1f}%, Gain {selected_gain:.1f}%",
+            text=chart_text["annot_top"].format(p=default_percentile, sr=selected_sr, gain=selected_gain),
             showarrow=True,
             arrowhead=2,
             ax=26,
@@ -412,7 +495,7 @@ def _make_figure(
             y=101,
             xref="x",
             yref="y",
-            text=f"Optimal cutoff (max KS {best_ks_value:.1f}pp): {best_ks_percentile}%",
+            text=chart_text["annot_ks"].format(ks=best_ks_value, p=best_ks_percentile),
             showarrow=False,
             bgcolor="rgba(248,250,252,0.95)",
             bordercolor="#CBD5E1",
@@ -425,7 +508,7 @@ def _make_figure(
             y=max(5.0, float(metrics["cumulative_success_rate_pct"].max()) * 0.86),
             xref="x2",
             yref="y2",
-            text=f"Needed for target SR: {required_cutoff}%",
+            text=chart_text["annot_required"].format(p=required_cutoff),
             showarrow=False,
             bgcolor="rgba(255,251,235,0.96)",
             bordercolor="#D97706",
@@ -474,7 +557,7 @@ def _make_figure(
         paper_bgcolor="#FFFFFF",
         plot_bgcolor="#FFFFFF",
         title={
-            "text": "Model Performance",
+            "text": chart_text["figure_title"],
             "x": 0.5,
             "xanchor": "center",
             "font": {"size": 28, "color": "#0F172A", "family": "Segoe UI, Arial, sans-serif"},
@@ -503,7 +586,10 @@ def _make_figure(
 def _make_gain_figure(
     metrics: pd.DataFrame,
     default_percentile: int,
+    chart_text: dict[str, str] | None = None,
 ) -> go.Figure:
+    if chart_text is None:
+        chart_text = _resolve_chart_text("en")
     x = metrics["contacted_percentile"]
     selected_row = metrics.loc[metrics["contacted_percentile"] == default_percentile].iloc[0]
     selected_gain = float(selected_row["gain_pct"])
@@ -518,10 +604,10 @@ def _make_gain_figure(
             x=x,
             y=metrics["gain_pct"],
             mode="lines+markers",
-            name="Model",
+            name=chart_text["trace_model"],
             line={"color": "#0057D9", "width": 3},
             marker={"size": 4},
-            hovertemplate="Contacted: %{x}%<br>Gain: %{y:.2f}%<extra></extra>",
+            hovertemplate=chart_text["hover_gain"],
         )
     )
     fig.add_trace(
@@ -529,9 +615,9 @@ def _make_gain_figure(
             x=x,
             y=metrics["random_baseline_gain_pct"],
             mode="lines",
-            name="Random",
+            name=chart_text["trace_random"],
             line={"color": "#94A3B8", "width": 1.5, "dash": "dash"},
-            hovertemplate="Contacted: %{x}%<br>Baseline gain: %{y:.2f}%<extra></extra>",
+            hovertemplate=chart_text["hover_baseline_gain"],
         )
     )
     fig.add_trace(
@@ -539,13 +625,13 @@ def _make_gain_figure(
             x=x,
             y=metrics["ideal_gain_pct"],
             mode="lines",
-            name="Ideal",
+            name=chart_text["trace_ideal"],
             line={"color": "#CBD5E1", "width": 1.5, "dash": "dot"},
-            hovertemplate="Contacted: %{x}%<br>Ideal gain: %{y:.2f}%<extra></extra>",
+            hovertemplate=chart_text["hover_ideal_gain"],
         )
     )
     fig.update_xaxes(
-        title_text="Contacted Population Percentile (%)",
+        title_text=chart_text["x_contacted_pct"],
         range=[1, 100],
         showline=True,
         linewidth=1,
@@ -555,7 +641,7 @@ def _make_gain_figure(
         dtick=10,
     )
     fig.update_yaxes(
-        title_text="Gain / Share (%)",
+        title_text=chart_text["y_gain_share"],
         range=[0, 105],
         showline=True,
         linewidth=1,
@@ -584,7 +670,7 @@ def _make_gain_figure(
                 y=selected_gain,
                 xref="x",
                 yref="y",
-                text=f"Top {default_percentile}% -> SR {selected_sr:.1f}%, Gain {selected_gain:.1f}%",
+                text=chart_text["annot_top"].format(p=default_percentile, sr=selected_sr, gain=selected_gain),
                 showarrow=True,
                 arrowhead=2,
                 ax=20,
@@ -600,7 +686,7 @@ def _make_gain_figure(
                 y=101,
                 xref="x",
                 yref="y",
-                text=f"Optimal cutoff (max KS {best_ks_value:.1f}pp): {best_ks_percentile}%",
+                text=chart_text["annot_ks"].format(ks=best_ks_value, p=best_ks_percentile),
                 showarrow=False,
                 bgcolor="rgba(248,250,252,0.95)",
                 bordercolor="#CBD5E1",
@@ -641,24 +727,27 @@ def _make_gain_figure(
 def _make_success_rate_figure(
     metrics: pd.DataFrame,
     required_cutoff: int,
+    chart_text: dict[str, str] | None = None,
 ) -> go.Figure:
+    if chart_text is None:
+        chart_text = _resolve_chart_text("en")
     fig = go.Figure()
     x = metrics["contacted_percentile"]
     fig.add_trace(
         go.Bar(
             x=x,
             y=metrics["cumulative_success_rate_pct"],
-            name="Success Rate",
+            name=chart_text["trace_success"],
             marker={
                 "color": _success_bar_colors(metrics=metrics, required_cutoff=required_cutoff),
                 "line": {"color": "rgba(15, 23, 42, 0.12)", "width": 0.6},
             },
-            hovertemplate="Contacted: %{x}%<br>Success rate: %{y:.2f}%<extra></extra>",
+            hovertemplate=chart_text["hover_success_rate"],
         )
     )
     y_top = max(5.0, float(metrics["cumulative_success_rate_pct"].max()) * 1.08)
     fig.update_xaxes(
-        title_text="Contacted Population Percentile (%)",
+        title_text=chart_text["x_contacted_pct"],
         range=[1, 100],
         showline=True,
         linewidth=1,
@@ -668,7 +757,7 @@ def _make_success_rate_figure(
         dtick=10,
     )
     fig.update_yaxes(
-        title_text="Success Rate (%)",
+        title_text=chart_text["y_success_rate"],
         range=[0, y_top],
         showline=True,
         linewidth=1,
@@ -689,7 +778,7 @@ def _make_success_rate_figure(
                 y=max(5.0, float(metrics["cumulative_success_rate_pct"].max()) * 0.86),
                 xref="x",
                 yref="y",
-                text=f"Needed for target SR: {required_cutoff}%",
+                text=chart_text["annot_required"].format(p=required_cutoff),
                 showarrow=False,
                 bgcolor="rgba(255,251,235,0.96)",
                 bordercolor="#D97706",
@@ -855,24 +944,29 @@ def _build_campaign_percentile_distribution(
     return distribution
 
 
-def _make_campaign_distribution_figure(distribution: pd.DataFrame) -> go.Figure:
+def _make_campaign_distribution_figure(
+    distribution: pd.DataFrame,
+    chart_text: dict[str, str] | None = None,
+) -> go.Figure:
+    if chart_text is None:
+        chart_text = _resolve_chart_text("en")
     fig = go.Figure()
     fig.add_trace(
         go.Bar(
             x=distribution["percentile"],
             y=distribution["all_clients"],
-            name="All scored clients",
+            name=chart_text["dist_all_clients"],
             marker={"color": "rgba(148, 163, 184, 0.60)"},
-            hovertemplate="Percentile: %{x}<br>All clients: %{y}<extra></extra>",
+            hovertemplate=chart_text["dist_hover_all"],
         )
     )
     fig.add_trace(
         go.Bar(
             x=distribution["percentile"],
             y=distribution["campaign_clients"],
-            name="Campaign clients",
+            name=chart_text["dist_campaign_clients"],
             marker={"color": "rgba(0, 87, 217, 0.85)"},
-            hovertemplate="Percentile: %{x}<br>Campaign clients: %{y}<extra></extra>",
+            hovertemplate=chart_text["dist_hover_campaign"],
         )
     )
     fig.update_layout(
@@ -892,7 +986,7 @@ def _make_campaign_distribution_figure(distribution: pd.DataFrame) -> go.Figure:
         font={"family": "Segoe UI, Arial, sans-serif", "size": 12, "color": "#0F172A"},
     )
     fig.update_xaxes(
-        title_text="Model Score Percentile",
+        title_text=chart_text["dist_x_title"],
         dtick=5,
         showline=True,
         linewidth=1,
@@ -900,7 +994,7 @@ def _make_campaign_distribution_figure(distribution: pd.DataFrame) -> go.Figure:
         tickangle=0,
     )
     fig.update_yaxes(
-        title_text="Client Count",
+        title_text=chart_text["dist_y_title"],
         rangemode="tozero",
         showline=True,
         linewidth=1,
@@ -914,11 +1008,14 @@ def _make_campaign_rate_comparison_figure(
     whole_base_default_sr_pct: float,
     campaign_default_sr_pct: float,
     top_equal_volume_sr_pct: float,
+    chart_text: dict[str, str] | None = None,
 ) -> go.Figure:
+    if chart_text is None:
+        chart_text = _resolve_chart_text("en")
     labels = [
-        "Whole Base\n(Default)",
-        "Campaign Clients\n(Default)",
-        "Top-N by Score\n(Same Volume)",
+        chart_text["rate_bar_1"],
+        chart_text["rate_bar_2"],
+        chart_text["rate_bar_3"],
     ]
     values = [
         whole_base_default_sr_pct,
@@ -935,7 +1032,7 @@ def _make_campaign_rate_comparison_figure(
                 text=[f"{v:.1f}%" for v in values],
                 textposition="inside",
                 insidetextanchor="middle",
-                hovertemplate="%{x}<br>Expected success rate: %{y:.2f}%<extra></extra>",
+                hovertemplate=chart_text["rate_hover"],
             )
         ]
     )
@@ -948,7 +1045,7 @@ def _make_campaign_rate_comparison_figure(
         font={"family": "Segoe UI, Arial, sans-serif", "size": 12, "color": "#0F172A"},
     )
     fig.update_yaxes(
-        title_text="Expected Success Rate (%)",
+        title_text=chart_text["rate_y_title"],
         rangemode="tozero",
         gridcolor="#E2E8F0",
         showline=True,
@@ -1225,6 +1322,7 @@ def EvaluateModel(
         historical_period_end=historical_period_end,
     )
     labels = _resolve_report_language(language=language)
+    chart_text = _resolve_chart_text(language=language)
     model_score, target_store, _ = create_simulated_tables(seed=seed)
     model_score = model_score.copy()
     model_score["fs_time"] = pd.to_datetime(model_score["fs_time"], errors="coerce")
@@ -1239,8 +1337,12 @@ def EvaluateModel(
         metrics.loc[metrics["contacted_percentile"] == selected_percentile, "cumulative_success_rate_pct"].iloc[0]
     )
     required_cutoff = _required_cutoff_for_desired_rate(metrics=metrics, desired_rate=desired_success_rate)
-    gain_figure = _make_gain_figure(metrics=metrics, default_percentile=selected_percentile)
-    success_figure = _make_success_rate_figure(metrics=metrics, required_cutoff=required_cutoff)
+    gain_figure = _make_gain_figure(metrics=metrics, default_percentile=selected_percentile, chart_text=chart_text)
+    success_figure = _make_success_rate_figure(
+        metrics=metrics,
+        required_cutoff=required_cutoff,
+        chart_text=chart_text,
+    )
     summary = _build_cutoff_summary(metrics=metrics, selected_percentile=selected_percentile)
     cutoff_points = [
         {
@@ -1303,16 +1405,25 @@ def EvaluateModel(
             metrics=campaign_metrics,
             desired_rate=desired_success_rate,
         )
-        campaign_gain_figure = _make_gain_figure(metrics=campaign_metrics, default_percentile=selected_percentile)
+        campaign_gain_figure = _make_gain_figure(
+            metrics=campaign_metrics,
+            default_percentile=selected_percentile,
+            chart_text=chart_text,
+        )
         campaign_success_figure = _make_success_rate_figure(
             metrics=campaign_metrics,
             required_cutoff=campaign_required_cutoff,
+            chart_text=chart_text,
         )
-        campaign_distribution_figure = _make_campaign_distribution_figure(distribution=campaign_distribution)
+        campaign_distribution_figure = _make_campaign_distribution_figure(
+            distribution=campaign_distribution,
+            chart_text=chart_text,
+        )
         campaign_rate_compare_figure = _make_campaign_rate_comparison_figure(
             whole_base_default_sr_pct=whole_base_default_sr_pct,
             campaign_default_sr_pct=campaign_default_sr_pct,
             top_equal_volume_sr_pct=top_equal_volume_sr_pct,
+            chart_text=chart_text,
         )
 
         campaign_distribution_html = campaign_distribution_figure.to_html(
@@ -1753,7 +1864,7 @@ def EvaluateModel(
       <div class="chart-grid chart-grid-2">
         <div class="plot-card" id="top-gain-card">
           <div class="plot-card-head">
-            <h3>Cumulative Gain Chart</h3>
+            <h3>{labels["top_gain_title"]}</h3>
             <div class="tooltip-wrap">
               <button class="tooltip-btn" type="button" aria-describedby="tooltip-top-gain">?</button>
               <div class="tooltip-body" id="tooltip-top-gain">
@@ -1771,7 +1882,7 @@ def EvaluateModel(
         </div>
         <div class="plot-card" id="top-success-card">
           <div class="plot-card-head">
-            <h3>Cumulative Success Rate Chart</h3>
+            <h3>{labels["top_success_title"]}</h3>
             <div class="tooltip-wrap">
               <button class="tooltip-btn" type="button" aria-describedby="tooltip-top-success">?</button>
               <div class="tooltip-body" id="tooltip-top-success">
@@ -1803,6 +1914,8 @@ def EvaluateModel(
     const campaignBestKsPercentile = {campaign_best_ks_percentile};
     const numberLocale = "{labels["number_locale"]}";
     const labelTop = "{labels["top_word"]}";
+    const labelSr = "{labels["abbr_sr"]}";
+    const labelGain = "{labels["abbr_gain"]}";
     const requiredCutoffPrefix = "{labels["required_cutoff_prefix"]}";
     const neededForTargetPrefix = "{labels["required_cutoff_prefix"]}";
 
@@ -1850,7 +1963,7 @@ def EvaluateModel(
         "shapes[0].x1": point.p,
         "annotations[0].x": point.p,
         "annotations[0].y": point.gain,
-        "annotations[0].text": `${{labelTop}} ${{point.p}}% -> SR ${{point.sr.toFixed(1)}}%, Gain ${{point.gain.toFixed(1)}}%`,
+        "annotations[0].text": `${{labelTop}} ${{point.p}}% -> ${{labelSr}} ${{point.sr.toFixed(1)}}%, ${{labelGain}} ${{point.gain.toFixed(1)}}%`,
         "annotations[1].x": ksPercentile
       }});
       return true;

@@ -11,6 +11,8 @@ from evaluate_model import (
     _build_estimated_metrics_by_contact_percentile,
     _build_metrics_by_contact_percentile,
     _make_campaign_rate_comparison_figure,
+    _make_gain_figure,
+    _resolve_chart_text,
     _resolve_campaign_metrics_for_report,
     _make_figure,
     _prepare_campaign_estimated_performance,
@@ -325,11 +327,24 @@ def test_generated_report_supports_czech_language_output(tmp_path) -> None:
     )
     html = output.read_text(encoding="utf-8")
     assert '<html lang="cs">' in html
-    assert "Vyhodnoceni vykonnosti modelu" in html
-    assert "Vyberovy percentil cut-off" in html
-    assert "Porovnani vychozi uspesnosti" in html
+    assert "Vyhodnocení výkonnosti modelu" in html
+    assert "Výběrový percentil cut-off" in html
+    assert "Porovnání výchozí úspěšnosti" in html
+    assert "Graf kumulativního zisku" in html
     assert 'const numberLocale = "cs-CZ"' in html
     assert "toLocaleString(numberLocale)" in html
+
+
+def test_czech_chart_labels_are_applied_to_figure_builders() -> None:
+    metrics = _build_metrics_by_contact_percentile(_performance_fixture())
+    chart_text = _resolve_chart_text("cs")
+    fig = _make_gain_figure(metrics=metrics, default_percentile=20, chart_text=chart_text)
+
+    assert fig.layout.xaxis.title.text == "Percentil oslovené populace (%)"
+    assert fig.layout.yaxis.title.text == "Zisk / podíl (%)"
+    trace_names = {trace.name for trace in fig.data}
+    assert "Náhoda" in trace_names
+    assert "Ideál" in trace_names
 
 
 def test_evaluatemodel_rejects_unsupported_language(tmp_path) -> None:

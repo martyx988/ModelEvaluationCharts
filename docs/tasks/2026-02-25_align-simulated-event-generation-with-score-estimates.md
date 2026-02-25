@@ -40,6 +40,9 @@ Find and fix why campaign-selection bottom charts diverge strongly from top char
 - [x] Re-run pytest and confirm pass for localization slice.
 - [x] Remove MSP-dependent test artifacts after MSP module/notebook deletion.
 - [x] Re-run pytest and confirm pass after MSP cleanup.
+- [x] Add chart-level localization (titles, axes, legends, hover, annotations) for `language="cs"` with diacritics.
+- [x] Update Czech HTML copy to use diacritics consistently.
+- [x] Re-run pytest and confirm pass for diacritics + chart-localization slice.
 
 # Architecture Notes
 - Keep `EvaluateModel` API unchanged.
@@ -81,6 +84,10 @@ Find and fix why campaign-selection bottom charts diverge strongly from top char
 - 2026-02-25: Removed MSP-dependent artifacts (`tests/test_testing_msp_notebook.py` and stale `evaluate_model_msp` import in tests).
 - 2026-02-25: Implemented `EvaluateModel(language="en"|"cs")` with language validation and Czech HTML labels.
 - 2026-02-25: Build/Verify passed after cleanup/localization: `python -m pytest` -> `17 passed`.
+- 2026-02-25: User requested Czech with diacritics and translation of chart texts (not only surrounding HTML). Starting follow-up localization slice.
+- 2026-02-25: Added `_resolve_chart_text(language)` and wired localized chart text through figure builders (gain/success/distribution/rate comparison), including hover, annotations, axis titles, and trace names.
+- 2026-02-25: Updated Czech report/UI copy to proper diacritics.
+- 2026-02-25: Added regression test for Czech chart labels on figure builders; full test suite passed (`18 passed`).
 
 # Final Summary
 Root cause:
