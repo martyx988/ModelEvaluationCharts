@@ -756,3 +756,29 @@ Ensure notebook validation cell reflects current simulation design and executes 
 - 2026-02-25: Added clarifying comment in notebook validation cell and retained corrected assertions (`>= 1000` unique targets, multi-month timestamp range).
 - 2026-02-25: Verified notebook execution via nbconvert and confirmed tests still pass (`6 passed`).
 - 2026-02-25: Re-verified after user-reported stale assertion; notebook validation cell confirmed with current assertions and successful execution.
+
+---
+
+# Slice 17 - Actual-Only Selection Comparison Logic
+
+## Task Contract
+
+### Goal
+Use only actual scores for selection/model comparison metrics, keep historical data only for portfolio-average baseline, and replace confusing comparison curve with selected-vs-model cumulative estimated success rate chart.
+
+### Tactical Plan
+- [x] Update campaign comparison metric definitions to actual-score estimates for selection/model-guided.
+- [x] Keep historical period only for portfolio-average event-rate baseline.
+- [x] Replace second campaign chart with cumulative estimated success-rate curves for selected clients and model-guided same volume.
+- [x] Add explicit explanatory note and additional chart tips in campaign section.
+- [x] Run pytest and regenerate report.
+
+## Progress Log
+- 2026-02-25: Refactored campaign comparison to estimate selection and model-guided rates from actual latest scores (no historical comparison line/bars for these metrics).
+- 2026-02-25: Historical period now contributes only portfolio-average observed event rate with explicit period note.
+- 2026-02-25: Replaced second campaign chart with clearer cumulative estimated SR curves within campaign volume.
+- 2026-02-25: Added suggestion tips for additional charts (calibration, lift breakpoints, budget scenarios).
+- 2026-02-25: Verified with `python -m pytest -q` (6 passed) and `python evaluate_model.py`.
+
+## Final Summary
+Slice 17 completed. Campaign comparison now follows business logic: selection/model-guided are estimated from actual scores, portfolio average is historical-event baseline for selected period, and the second chart is a clearer cumulative estimated success-rate view for selected clients vs model-guided same volume.

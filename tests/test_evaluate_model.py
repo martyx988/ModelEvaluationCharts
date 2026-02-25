@@ -84,6 +84,7 @@ def test_generated_report_includes_campaign_selection_section_when_enabled(tmp_p
     html = output.read_text(encoding="utf-8")
     assert "Campaign Selection Potential" in html
     assert "Model-guided at same volume" in html
+    assert "Estimated from actual model scores" in html
 
 
 def test_simulated_tables_include_latest_january_scores() -> None:
@@ -93,7 +94,7 @@ def test_simulated_tables_include_latest_january_scores() -> None:
     assert fs_time.max() == pd.Timestamp("2026-01-31")
 
 
-def test_campaign_selection_report_displays_actual_and_historical_periods(tmp_path) -> None:
+def test_campaign_selection_report_displays_portfolio_baseline_period(tmp_path) -> None:
     model_score, _, _ = create_simulated_tables(seed=42)
     campaign_clients = model_score[["pt_unified_key"]].drop_duplicates().head(120).copy()
     output = tmp_path / "report_selection_periods.html"
@@ -106,5 +107,4 @@ def test_campaign_selection_report_displays_actual_and_historical_periods(tmp_pa
         historical_period_end="2025-12-31",
     )
     html = output.read_text(encoding="utf-8")
-    assert "Actual period:" in html
-    assert "Historical period:" in html
+    assert "Portfolio baseline period:" in html
