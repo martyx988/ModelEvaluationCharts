@@ -63,4 +63,6 @@ def test_generated_report_contains_interactive_cutoff_control(tmp_path) -> None:
     assert 'id="desired-rate-slider"' in html
     assert 'id="required-cutoff-value"' in html
     assert "Plotly.relayout" in html
+    assert "desiredRateSlider.value = point.sr.toFixed(1)" in html
+    assert "slider.value = String(required)" in html
     assert "How to read these charts" in html

@@ -475,3 +475,61 @@ Further reduce chart footprint, widen and split the explanation panel by chart r
 
 ## Final Summary
 Slice 7 completed. The report now defaults to KS-optimal cutoff, includes dual interactive controls (selected cutoff + desired success rate), uses a threshold-shaded success-rate bar chart with required-cutoff feedback, and presents a tighter chart area with wider split business guidance aligned to top and bottom charts.
+
+---
+
+# Slice 8 - Bidirectional Control Sync + Vertically Centered Guide
+
+## Task Contract
+
+### Goal
+Synchronize selected-cutoff and desired-success-rate controls bidirectionally, and vertically center right-side chart descriptions within each chart-aligned panel.
+
+### Acceptance Criteria
+- Changing selected cutoff recalculates and updates desired success rate.
+- Changing desired success rate recalculates and updates selected cutoff.
+- Controls remain consistent/matched after every interaction.
+- Right-side top/bottom description sections are vertically centered to chart rows.
+
+### Non-Goals
+- Reworking chart semantics or KPI definitions.
+
+### Assumptions / Open Questions
+- Assumption: synced mapping is exact to cumulative rate at the selected cutoff and required cutoff for desired rate.
+
+## Strategic Plan
+- Add report-level test assertion for sync hooks.
+- Implement synchronized event handlers in client JS.
+- Adjust guide-panel section flex alignment to vertical center.
+
+## Tactical Plan
+- [x] Add/extend tests for synchronized control hooks in HTML script.
+- [x] Implement cutoff -> desired-rate synchronization.
+- [x] Implement desired-rate -> cutoff synchronization.
+- [x] Vertically center top/bottom guide sections.
+- [x] Run pytest and regenerate report.
+
+## Architecture Notes
+- Public API unchanged.
+- JS introduces dedicated sync handlers to avoid drift between controls.
+
+## Test Plan
+
+### Automated tests (what/where)
+- `tests/test_evaluate_model.py`:
+  - assert generated HTML includes sync statements for both control directions.
+
+### Manual verification script
+- Move cutoff slider and confirm desired rate updates.
+- Move desired rate slider and confirm selected cutoff updates.
+
+## Progress Log
+- 2026-02-25: Opened Slice 8 for bidirectional control synchronization and centered guide sections.
+- 2026-02-25: Added report-level test assertions for both sync directions in embedded JS hooks.
+- 2026-02-25: Implemented cutoff-to-desired synchronization (`desiredRateSlider` updates when cutoff changes).
+- 2026-02-25: Implemented desired-to-cutoff synchronization (required cutoff recalculates selected cutoff).
+- 2026-02-25: Vertically centered guide sections to align with top and bottom chart rows.
+- 2026-02-25: Verified with `python -m pytest -q` (3 passed) and regenerated report.
+
+## Final Summary
+Slice 8 completed. The selected cutoff and desired success-rate controls are now fully synchronized in both directions, and the right-side chart explanations are vertically centered within their chart-aligned panels.

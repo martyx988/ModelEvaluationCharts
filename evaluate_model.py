@@ -482,7 +482,7 @@ def EvaluateModel(
       padding: 12px 11px;
       display: flex;
       flex-direction: column;
-      justify-content: flex-start;
+      justify-content: center;
     }}
     .guide-panel h3 {{
       margin: 0 0 8px 0;
@@ -794,8 +794,17 @@ def EvaluateModel(
       if (!point) {{
         return;
       }}
+      desiredRateSlider.value = point.sr.toFixed(1);
       updateKpis(point);
       updateFigure(point);
+      updateDesiredRateUi(Number(desiredRateSlider.value));
+    }}
+
+    function applyDesiredRate(desiredRate) {{
+      const required = requiredCutoffForDesired(desiredRate);
+      slider.value = String(required);
+      updateDesiredRateUi(desiredRate);
+      applyCutoff(required);
     }}
 
     const slider = document.getElementById("cutoff-slider");
@@ -804,12 +813,13 @@ def EvaluateModel(
       applyCutoff(Number(event.target.value));
     }});
     desiredRateSlider.addEventListener("input", (event) => {{
-      updateDesiredRateUi(Number(event.target.value));
+      applyDesiredRate(Number(event.target.value));
     }});
 
     let retries = 0;
     const init = () => {{
       const ok = updateFigure(pointFor(Number(slider.value))) && updateDesiredRateUi(Number(desiredRateSlider.value));
+      applyCutoff(Number(slider.value));
       if (!ok && retries < 20) {{
         retries += 1;
         setTimeout(init, 100);
