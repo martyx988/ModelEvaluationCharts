@@ -739,8 +739,8 @@ def EvaluateModel(
       return "rgba(148,163,184,0.28)";
     }}
 
-    function updateDesiredRateUi(desiredRate) {{
-      const required = requiredCutoffForDesired(desiredRate);
+    function updateDesiredRateUi(desiredRate, forcedRequired = null) {{
+      const required = forcedRequired === null ? requiredCutoffForDesired(desiredRate) : forcedRequired;
       document.getElementById("desired-rate-value").textContent = `${{desiredRate.toFixed(1)}}%`;
       document.getElementById("required-cutoff-value").textContent = `Required cutoff: ${{required}}%`;
 
@@ -782,10 +782,11 @@ def EvaluateModel(
       if (!point) {{
         return;
       }}
+      const required = point.p;
       desiredRateSlider.value = point.sr.toFixed(1);
       updateKpis(point);
       updateFigure(point);
-      updateDesiredRateUi(Number(desiredRateSlider.value));
+      updateDesiredRateUi(Number(desiredRateSlider.value), required);
     }}
 
     function applyDesiredRate(desiredRate) {{

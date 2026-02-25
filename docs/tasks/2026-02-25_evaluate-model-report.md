@@ -573,3 +573,31 @@ When desired success rate changes, recolor bottom bars so chosen percentiles are
 
 ## Final Summary
 Slice 9 completed. Desired-rate interactions now recolor the bottom chart with blue for chosen percentiles and shadow gray for unused percentiles, both on initial render and during live updates.
+
+---
+
+# Slice 10 - Hard Sync for Cutoff Markers
+
+## Task Contract
+
+### Goal
+Ensure selected-cutoff and desired-rate cutoff markers always align to the same percentile with no drift.
+
+### Acceptance Criteria
+- After any control interaction, selected cutoff marker and required-cutoff marker share the same x-position.
+- Desired rate display is snapped to selected cutoff's actual cumulative success rate.
+- No visual mismatch between the two vertical markers.
+
+## Tactical Plan
+- [x] Add regression assertion for hard-sync JS hook.
+- [x] Update JS flow so selected cutoff is authoritative and required marker follows it.
+- [x] Run pytest and regenerate report.
+
+## Progress Log
+- 2026-02-25: Opened Slice 10 to enforce strict marker alignment.
+- 2026-02-25: Added regression check for hard-sync statement (`const required = point.p;`) in generated HTML script.
+- 2026-02-25: Updated control-sync flow so cutoff interaction forces required-cutoff marker to same percentile.
+- 2026-02-25: Verified with `python -m pytest -q` (3 passed) and regenerated report.
+
+## Final Summary
+Slice 10 completed. Selected-cutoff and desired-rate cutoff markers are now hard-synchronized to the same percentile after interactions, eliminating line mismatch.

@@ -66,4 +66,5 @@ def test_generated_report_contains_interactive_cutoff_control(tmp_path) -> None:
     assert "desiredRateSlider.value = point.sr.toFixed(1)" in html
     assert "slider.value = String(required)" in html
     assert "point.p <= required" in html
+    assert "const required = point.p;" in html
     assert "How to read these charts" in html
