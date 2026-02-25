@@ -881,7 +881,8 @@ def _make_campaign_rate_comparison_figure(
                 y=values,
                 marker={"color": colors},
                 text=[f"{v:.1f}%" for v in values],
-                textposition="outside",
+                textposition="inside",
+                insidetextanchor="middle",
                 hovertemplate="%{x}<br>Expected success rate: %{y:.2f}%<extra></extra>",
             )
         ]

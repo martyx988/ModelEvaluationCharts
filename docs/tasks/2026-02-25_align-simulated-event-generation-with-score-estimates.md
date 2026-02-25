@@ -29,6 +29,10 @@ Find and fix why campaign-selection bottom charts diverge strongly from top char
 - [x] Implement all-client campaign metric parity for KS cutoff.
 - [x] Re-run pytest and confirm pass.
 - [x] Update this task file with follow-up summary.
+- [x] Add tests-first check for default-rate comparison bar label placement.
+- [x] Update chart trace text placement to inside-bar labels.
+- [x] Re-run pytest and confirm pass for this UI tweak.
+- [x] Update task log/final summary for this UI tweak.
 
 # Architecture Notes
 - Keep `EvaluateModel` API unchanged.
@@ -59,6 +63,10 @@ Find and fix why campaign-selection bottom charts diverge strongly from top char
 - 2026-02-25: QA added `test_all_client_campaign_ks_cutoff_matches_top_metrics`; red phase reproduced mismatch (`47` vs `58`).
 - 2026-02-25: Developer added `_campaign_covers_whole_base(...)` and `_resolve_campaign_metrics_for_report(...)`; report now reuses top actual metrics for campaign gain/success charts when campaign equals full latest base.
 - 2026-02-25: Build/Verify follow-up passed. Targeted tests passed (`2 passed`), full suite passed (`14 passed`).
+- 2026-02-25: New follow-up requested: place “Default Success Rate Comparison” values inside bars (instead of above). Starting tests-first + implementation slice.
+- 2026-02-25: QA tests-first added `test_campaign_rate_comparison_labels_render_inside_bars`; red phase failed (`textposition='outside'`).
+- 2026-02-25: Developer updated `_make_campaign_rate_comparison_figure(...)` to use inside labels (`textposition='inside'`, centered).
+- 2026-02-25: Build/Verify UI tweak passed. Targeted test passed and full suite passed (`15 passed`).
 
 # Final Summary
 Root cause:
@@ -77,3 +85,7 @@ Evidence:
 Follow-up:
 - Added explicit all-client parity handling so campaign bottom gain/success charts share the same KS optimum as the top charts when `campaign_clients` covers the full latest scored base.
 - Follow-up verification: `python -m pytest` passed (`14 passed`).
+
+UI tweak:
+- Updated “Default Success Rate Comparison” bar labels to render inside each bar.
+- Verification after tweak: `python -m pytest` passed (`15 passed`).

@@ -7,6 +7,7 @@ from evaluate_model import (
     EvaluateModel,
     _build_estimated_metrics_by_contact_percentile,
     _build_metrics_by_contact_percentile,
+    _make_campaign_rate_comparison_figure,
     _resolve_campaign_metrics_for_report,
     _make_figure,
     _prepare_campaign_estimated_performance,
@@ -262,3 +263,14 @@ def test_all_client_campaign_ks_cutoff_matches_top_metrics() -> None:
     )
 
     assert int(campaign_metrics["best_ks_percentile"].iat[0]) == int(top_metrics["best_ks_percentile"].iat[0])
+
+
+def test_campaign_rate_comparison_labels_render_inside_bars() -> None:
+    fig = _make_campaign_rate_comparison_figure(
+        whole_base_default_sr_pct=10.0,
+        campaign_default_sr_pct=12.5,
+        top_equal_volume_sr_pct=15.2,
+    )
+    bar = fig.data[0]
+    assert bar.type == "bar"
+    assert bar.textposition == "inside"
