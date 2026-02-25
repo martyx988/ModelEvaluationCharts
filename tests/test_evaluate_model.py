@@ -3,6 +3,7 @@ from __future__ import annotations
 import pandas as pd
 
 from evaluate_model import EvaluateModel, _build_metrics_by_contact_percentile, _make_figure
+from evaluate_model_msp import EvaluateModel_msp
 from simulated_data import create_simulated_tables
 
 
@@ -43,11 +44,12 @@ def test_figure_has_presentation_trace_set_and_cutoff_markers() -> None:
     assert "Model" in trace_names
     assert "Random" in trace_names
     assert "Ideal" in trace_names
-    assert "Success Rate" in trace_names
+    assert "Success Rate (Selected Range)" in trace_names
+    assert "Success Rate (Outside Range)" in trace_names
     assert "Cumulative Non-Success Share" not in trace_names
     assert "KS" not in trace_names
-    success_trace = next(trace for trace in figure.data if trace.name == "Success Rate")
-    assert success_trace.type == "bar"
+    success_trace = next(trace for trace in figure.data if trace.name == "Success Rate (Selected Range)")
+    assert success_trace.type == "scatter"
 
     layout_dict = figure.to_plotly_json().get("layout", {})
     assert "sliders" not in layout_dict or not layout_dict["sliders"]
@@ -138,8 +140,7 @@ def test_campaign_selection_report_displays_actual_and_historical_periods(tmp_pa
         seed=42,
         include_campaign_selection=True,
         campaign_clients=campaign_clients,
-        historical_period_start="2025-10-01",
-        historical_period_end="2025-12-31",
+        historical_period="2025-12-31",
     )
     html = output.read_text(encoding="utf-8")
     assert "Campaign Selection Potential" in html

@@ -128,27 +128,29 @@ def _format_period_label(start: pd.Timestamp, end: pd.Timestamp) -> str:
 def _resolve_historical_scores(
     model_score: pd.DataFrame,
     latest_fs_time: pd.Timestamp,
-    historical_period_start: str | pd.Timestamp | None,
-    historical_period_end: str | pd.Timestamp | None,
+    historical_period: str | pd.Timestamp | None,
 ) -> tuple[pd.DataFrame, str]:
     scored = model_score.copy()
     scored["fs_time"] = pd.to_datetime(scored["fs_time"], errors="coerce")
-    historical = scored.loc[scored["fs_time"] < latest_fs_time].copy()
-    if historical.empty:
+    historical_all = scored.loc[scored["fs_time"] < latest_fs_time].copy()
+    if historical_all.empty:
         raise ValueError("No historical scores are available before the newest actual model score date.")
 
-    start = pd.to_datetime(historical_period_start) if historical_period_start is not None else historical["fs_time"].min()
-    end = pd.to_datetime(historical_period_end) if historical_period_end is not None else historical["fs_time"].max()
-    if start > end:
-        raise ValueError("historical_period_start must be earlier than or equal to historical_period_end.")
+    if historical_period is None:
+        selected = historical_all.loc[historical_all["fs_time"] == historical_all["fs_time"].max()].copy()
+        ts = selected["fs_time"].iloc[0]
+        return selected, _format_period_label(ts, ts)
 
-    historical = historical.loc[(historical["fs_time"] >= start) & (historical["fs_time"] <= end)].copy()
+    selected_period = pd.to_datetime(historical_period).to_period("M")
+    historical = historical_all.loc[historical_all["fs_time"].dt.to_period("M") == selected_period].copy()
     if historical.empty:
-        raise ValueError("Historical period filter returned no model scores. Adjust historical period boundaries.")
-
-    actual_start = historical["fs_time"].min()
-    actual_end = historical["fs_time"].max()
-    return historical, _format_period_label(actual_start, actual_end)
+        available = sorted(historical_all["fs_time"].dt.strftime("%Y-%m-%d").unique())
+        raise ValueError(
+            "No historical scores found for requested period. "
+            f"Requested={selected_period}; available snapshots={available}"
+        )
+    ts = historical["fs_time"].iloc[0]
+    return historical, _format_period_label(ts, ts)
 
 
 def _required_cutoff_for_desired_rate(metrics: pd.DataFrame, desired_rate: float) -> int:
@@ -158,15 +160,23 @@ def _required_cutoff_for_desired_rate(metrics: pd.DataFrame, desired_rate: float
     return int(eligible.max())
 
 
-def _success_bar_colors(metrics: pd.DataFrame, required_cutoff: int) -> list[str]:
-    percentiles = metrics["contacted_percentile"].astype(int)
-    colors: list[str] = []
-    for percentile in percentiles:
+def _success_rate_segments(
+    metrics: pd.DataFrame,
+    required_cutoff: int,
+) -> tuple[list[float | None], list[float | None]]:
+    selected: list[float | None] = []
+    outside: list[float | None] = []
+    for percentile, sr in zip(
+        metrics["contacted_percentile"].astype(int),
+        metrics["cumulative_success_rate_pct"].astype(float),
+    ):
         if percentile <= required_cutoff:
-            colors.append("rgba(0, 87, 217, 0.80)")
+            selected.append(sr)
+            outside.append(None)
         else:
-            colors.append("rgba(148, 163, 184, 0.28)")
-    return colors
+            selected.append(None)
+            outside.append(sr)
+    return selected, outside
 
 
 def _make_figure(
@@ -228,15 +238,26 @@ def _make_figure(
         row=1,
         col=1,
     )
+    selected_sr_segment, outside_sr_segment = _success_rate_segments(metrics=metrics, required_cutoff=required_cutoff)
     fig.add_trace(
-        go.Bar(
+        go.Scatter(
             x=x,
-            y=metrics["cumulative_success_rate_pct"],
-            name="Success Rate",
-            marker={
-                "color": _success_bar_colors(metrics=metrics, required_cutoff=required_cutoff),
-                "line": {"color": "rgba(15, 23, 42, 0.12)", "width": 0.6},
-            },
+            y=selected_sr_segment,
+            mode="lines",
+            name="Success Rate (Selected Range)",
+            line={"color": "#0057D9", "width": 3},
+            hovertemplate="Contacted: %{x}%<br>Success rate: %{y:.2f}%<extra></extra>",
+        ),
+        row=2,
+        col=1,
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=x,
+            y=outside_sr_segment,
+            mode="lines",
+            name="Success Rate (Outside Range)",
+            line={"color": "rgba(148,163,184,0.48)", "width": 2},
             hovertemplate="Contacted: %{x}%<br>Success rate: %{y:.2f}%<extra></extra>",
         ),
         row=2,
@@ -887,52 +908,78 @@ def _build_campaign_selection_summary(
     }
 
 
-def _build_period_campaign_comparison(
-    model_score: pd.DataFrame,
-    target_store: pd.DataFrame,
-    campaign_clients: pd.DataFrame,
-) -> tuple[dict[str, float | int], pd.DataFrame]:
-    scored = model_score.copy()
-    scored["fs_time"] = pd.to_datetime(scored["fs_time"], errors="coerce")
-    summaries: list[dict[str, float | int]] = []
-    curves: list[pd.DataFrame] = []
-    for fs_time, snapshot in scored.groupby("fs_time", sort=True):
-        performance = _prepare_performance_data(model_score=snapshot, target_store=target_store)
-        metrics = _build_metrics_by_contact_percentile(performance=performance)
-        summaries.append(_build_campaign_selection_summary(performance=performance, metrics=metrics, campaign_clients=campaign_clients))
-        curves.append(
-            metrics[["contacted_percentile", "cumulative_success_rate_pct"]].assign(fs_time=fs_time)
-        )
-
-    if not summaries:
-        raise ValueError("No model snapshots found for campaign comparison.")
-
-    summary_df = pd.DataFrame(summaries)
-    avg_summary = {
-        "selected_clients": int(round(float(summary_df["selected_clients"].mean()))),
-        "selected_rate_pct": float(summary_df["selected_rate_pct"].mean()),
-        "selected_capture_pct": float(summary_df["selected_capture_pct"].mean()),
-        "model_top_rate_pct": float(summary_df["model_top_rate_pct"].mean()),
-        "model_top_capture_pct": float(summary_df["model_top_capture_pct"].mean()),
-        "overall_rate_pct": float(summary_df["overall_rate_pct"].mean()),
-        "volume_percentile": int(round(float(summary_df["volume_percentile"].mean()))),
-        "model_curve_rate_pct": float(summary_df["model_curve_rate_pct"].mean()),
-    }
-    curve = (
-        pd.concat(curves, ignore_index=True)
-        .groupby("contacted_percentile", as_index=False)["cumulative_success_rate_pct"]
-        .mean()
-        .sort_values("contacted_percentile", ignore_index=True)
+def _build_cumulative_estimated_curve(scored_clients: pd.DataFrame) -> pd.DataFrame:
+    if scored_clients.empty:
+        raise ValueError("Cannot build cumulative estimated curve from empty scored client frame.")
+    ordered = scored_clients.sort_values("score", ascending=False, ignore_index=True).copy()
+    ordered["cum_mean_score"] = ordered["score"].expanding().mean() * 100.0
+    n = len(ordered)
+    percentile_marks = np.arange(1, 101)
+    idx = np.ceil(percentile_marks * n / 100).astype(int) - 1
+    points = ordered.iloc[idx].copy().reset_index(drop=True)
+    return pd.DataFrame(
+        {
+            "contact_share_pct": percentile_marks,
+            "estimated_success_rate_pct": points["cum_mean_score"].astype(float),
+        }
     )
-    return avg_summary, curve
+
+
+def _build_actual_estimated_selection_summary(
+    actual_model_score: pd.DataFrame,
+    campaign_clients: pd.DataFrame,
+) -> tuple[dict[str, float | int], pd.DataFrame, pd.DataFrame]:
+    if "pt_unified_key" not in campaign_clients.columns:
+        raise ValueError("campaign_clients must include column: pt_unified_key")
+    selected_keys = set(campaign_clients["pt_unified_key"].dropna().astype(str))
+    if not selected_keys:
+        raise ValueError("campaign_clients.pt_unified_key is empty after removing null values.")
+
+    scored = actual_model_score.copy()
+    scored["pt_unified_key"] = scored["pt_unified_key"].astype(str)
+    selected = scored.loc[scored["pt_unified_key"].isin(selected_keys)].copy()
+    if selected.empty:
+        raise ValueError("None of campaign_clients.pt_unified_key matched scored clients in actual period.")
+
+    n_selected = len(selected)
+    model_top = scored.sort_values("score", ascending=False, ignore_index=True).head(n_selected).copy()
+    selected_rate_estimated = float(selected["score"].mean() * 100.0)
+    model_rate_estimated = float(model_top["score"].mean() * 100.0)
+    volume_pct = n_selected / len(scored) * 100.0
+    volume_percentile = int(min(100, max(1, np.ceil(volume_pct))))
+    selected_curve = _build_cumulative_estimated_curve(selected)
+    model_curve = _build_cumulative_estimated_curve(model_top)
+    return (
+        {
+            "selected_clients": n_selected,
+            "selected_rate_estimated_pct": selected_rate_estimated,
+            "model_guided_rate_estimated_pct": model_rate_estimated,
+            "volume_percentile": volume_percentile,
+        },
+        selected_curve,
+        model_curve,
+    )
+
+
+def _historical_portfolio_event_rate(
+    historical_scores: pd.DataFrame,
+    target_store: pd.DataFrame,
+) -> float:
+    rates: list[float] = []
+    for _, snapshot in historical_scores.groupby("fs_time", sort=True):
+        performance = _prepare_performance_data(model_score=snapshot, target_store=target_store)
+        rates.append(float(performance["is_success"].mean() * 100.0))
+    if not rates:
+        raise ValueError("Could not compute historical portfolio event rate from selected historical period.")
+    return float(np.mean(rates))
 
 
 def _make_campaign_selection_figure(
-    actual_curve: pd.DataFrame,
-    actual_summary: dict[str, float | int],
     actual_period_label: str,
-    historical_curve: pd.DataFrame,
-    historical_summary: dict[str, float | int],
+    selection_summary: dict[str, float | int],
+    selected_curve: pd.DataFrame,
+    model_guided_curve: pd.DataFrame,
+    historical_portfolio_rate_pct: float,
     historical_period_label: str,
 ) -> go.Figure:
     fig = make_subplots(
@@ -941,116 +988,72 @@ def _make_campaign_selection_figure(
         shared_xaxes=False,
         vertical_spacing=0.18,
         subplot_titles=(
-            "Selection Success Rate Benchmark (Actual vs Historical)",
-            "How Model Success Rate Changes by Contact Volume",
+            "Estimated Success Rate Benchmark",
+            "Cumulative Success Rate Within Campaign Volume",
         ),
     )
 
     benchmark_labels = ["Your Selection", "Model-guided at same volume", "Portfolio average"]
-    benchmark_actual = [
-        float(actual_summary["selected_rate_pct"]),
-        float(actual_summary["model_top_rate_pct"]),
-        float(actual_summary["overall_rate_pct"]),
-    ]
-    benchmark_historical = [
-        float(historical_summary["selected_rate_pct"]),
-        float(historical_summary["model_top_rate_pct"]),
-        float(historical_summary["overall_rate_pct"]),
+    benchmark_values = [
+        float(selection_summary["selected_rate_estimated_pct"]),
+        float(selection_summary["model_guided_rate_estimated_pct"]),
+        float(historical_portfolio_rate_pct),
     ]
     fig.add_trace(
         go.Bar(
             x=benchmark_labels,
-            y=benchmark_actual,
-            name=f"Actual ({actual_period_label})",
-            marker={"color": "#2563EB"},
-            text=[f"{v:.1f}%" for v in benchmark_actual],
+            y=benchmark_values,
+            marker={"color": ["#2563EB", "#0EA5E9", "#94A3B8"]},
+            text=[f"{v:.1f}%" for v in benchmark_values],
             textposition="outside",
+            cliponaxis=False,
             hovertemplate="%{x}<br>Success rate: %{y:.2f}%<extra></extra>",
-        ),
-        row=1,
-        col=1,
-    )
-    fig.add_trace(
-        go.Bar(
-            x=benchmark_labels,
-            y=benchmark_historical,
-            name=f"Historical ({historical_period_label})",
-            marker={"color": "#94A3B8"},
-            text=[f"{v:.1f}%" for v in benchmark_historical],
-            textposition="outside",
-            hovertemplate="%{x}<br>Success rate: %{y:.2f}%<extra></extra>",
+            showlegend=False,
         ),
         row=1,
         col=1,
     )
 
     fig.add_trace(
-        go.Scatter(
-            x=actual_curve["contacted_percentile"],
-            y=actual_curve["cumulative_success_rate_pct"],
-            mode="lines",
-            line={"color": "#1D4ED8", "width": 2.5},
-            name=f"Actual curve ({actual_period_label})",
-            hovertemplate="Percentile: %{x}%<br>Cumulative SR: %{y:.2f}%<extra></extra>",
+        go.Bar(
+            x=model_guided_curve["contact_share_pct"],
+            y=model_guided_curve["estimated_success_rate_pct"],
+            name=f"Model-guided cumulative SR ({actual_period_label})",
+            marker={
+                "color": "rgba(37,99,235,0.82)",
+                "line": {"color": "rgba(255,255,255,0.65)", "width": 0.5},
+            },
+            hovertemplate="Model-guided within campaign volume: %{x}%<br>Cumulative SR: %{y:.2f}%<extra></extra>",
+            opacity=0.95,
         ),
         row=2,
         col=1,
     )
     fig.add_trace(
         go.Scatter(
-            x=historical_curve["contacted_percentile"],
-            y=historical_curve["cumulative_success_rate_pct"],
+            x=selected_curve["contact_share_pct"],
+            y=selected_curve["estimated_success_rate_pct"],
             mode="lines",
-            line={"color": "#64748B", "width": 2.0, "dash": "dash"},
-            name=f"Historical curve ({historical_period_label})",
-            hovertemplate="Percentile: %{x}%<br>Cumulative SR: %{y:.2f}%<extra></extra>",
+            line={"color": "#0EA5E9", "width": 2.0, "dash": "dash"},
+            name=f"Selected cumulative SR ({actual_period_label})",
+            hovertemplate="Selected clients within campaign volume: %{x}%<br>Cumulative SR: %{y:.2f}%<extra></extra>",
         ),
         row=2,
         col=1,
     )
 
-    vol = int(actual_summary["volume_percentile"])
-    actual_model_rate_at_vol = float(actual_summary["model_curve_rate_pct"])
-    historical_model_rate_at_vol = float(historical_summary["model_curve_rate_pct"])
+    selected_full = float(selection_summary["selected_rate_estimated_pct"])
+    model_full = float(selection_summary["model_guided_rate_estimated_pct"])
     fig.update_layout(
-        barmode="group",
-        shapes=[
-            dict(
-                type="line",
-                xref="x2",
-                yref="paper",
-                x0=vol,
-                x1=vol,
-                y0=0.0,
-                y1=0.42,
-                line={"color": "#0F172A", "width": 1.4, "dash": "dot"},
-            ),
-        ],
+        barmode="overlay",
         annotations=[
             dict(
-                x=vol,
-                y=actual_model_rate_at_vol,
+                x=100,
+                y=selected_full,
                 xref="x2",
                 yref="y2",
-                text=f"Campaign size: ~{vol}% of clients",
-                showarrow=True,
-                arrowhead=2,
-                ax=20,
-                ay=-34,
-                bgcolor="rgba(255,255,255,0.95)",
-                bordercolor="#CBD5E1",
-                borderwidth=1,
-                font={"size": 11, "color": "#0F172A"},
-            ),
-            dict(
-                x=vol,
-                y=actual_model_rate_at_vol,
-                xref="x2",
-                yref="y2",
-                text=f"Actual model SR: {actual_model_rate_at_vol:.1f}%",
+                text=f"Selected full-volume estimate: {selected_full:.1f}%",
                 showarrow=False,
-                xanchor="left",
-                yanchor="bottom",
                 bgcolor="rgba(37,99,235,0.10)",
                 bordercolor="#2563EB",
                 borderwidth=1,
@@ -1058,19 +1061,19 @@ def _make_campaign_selection_figure(
                 font={"size": 10, "color": "#1E3A8A"},
             ),
             dict(
-                x=vol,
-                y=historical_model_rate_at_vol,
+                x=100,
+                y=model_full,
                 xref="x2",
                 yref="y2",
-                text=f"Historical model SR: {historical_model_rate_at_vol:.1f}%",
+                text=f"Model-guided full-volume estimate: {model_full:.1f}%",
                 showarrow=False,
-                xanchor="left",
-                yanchor="top",
-                bgcolor="rgba(148,163,184,0.16)",
-                bordercolor="#64748B",
+                xanchor="right",
+                yanchor="bottom",
+                bgcolor="rgba(14,165,233,0.12)",
+                bordercolor="#0EA5E9",
                 borderwidth=1,
                 borderpad=3,
-                font={"size": 10, "color": "#334155"},
+                font={"size": 10, "color": "#0C4A6E"},
             ),
         ],
         paper_bgcolor="#FFFFFF",
@@ -1078,37 +1081,18 @@ def _make_campaign_selection_figure(
         font={"family": "Segoe UI, Arial, sans-serif", "size": 12, "color": "#0F172A"},
         width=680,
         height=620,
-        margin={"l": 72, "r": 30, "t": 80, "b": 60},
+        margin={"l": 72, "r": 30, "t": 96, "b": 60},
     )
-    fig.update_yaxes(title_text="Success Rate (%)", row=1, col=1, rangemode="tozero", gridcolor="#E2E8F0")
-    fig.update_yaxes(title_text="Success Rate (%)", row=2, col=1, rangemode="tozero", gridcolor="#E2E8F0")
-    fig.update_xaxes(title_text="Contacted Percentile (%)", row=2, col=1, dtick=10)
-    fig.add_trace(
-        go.Scatter(
-            x=[vol],
-            y=[actual_model_rate_at_vol],
-            mode="markers",
-            marker={"size": 10, "color": "#2563EB", "line": {"color": "#FFFFFF", "width": 1}},
-            name=f"Actual @ {vol}%",
-            hovertemplate=f"Actual @ {vol}%: %{{y:.2f}}%<extra></extra>",
-            showlegend=False,
-        ),
-        row=2,
+    top_max = max(benchmark_values) if benchmark_values else 0.0
+    fig.update_yaxes(
+        title_text="Success Rate (%)",
+        row=1,
         col=1,
+        range=[0, max(5.0, top_max * 1.18)],
+        gridcolor="#E2E8F0",
     )
-    fig.add_trace(
-        go.Scatter(
-            x=[vol],
-            y=[historical_model_rate_at_vol],
-            mode="markers",
-            marker={"size": 10, "color": "#64748B", "line": {"color": "#FFFFFF", "width": 1}},
-            name=f"Historical @ {vol}%",
-            hovertemplate=f"Historical @ {vol}%: %{{y:.2f}}%<extra></extra>",
-            showlegend=False,
-        ),
-        row=2,
-        col=1,
-    )
+    fig.update_yaxes(title_text="Estimated Success Rate (%)", row=2, col=1, rangemode="tozero", gridcolor="#E2E8F0")
+    fig.update_xaxes(title_text="Contacted Share Within Campaign Volume (%)", row=2, col=1, dtick=10, range=[1, 100])
     return fig
 
 
@@ -1117,8 +1101,7 @@ def EvaluateModel(
     seed: int | None = 42,
     include_campaign_selection: bool = False,
     campaign_clients: pd.DataFrame | None = None,
-    historical_period_start: str | pd.Timestamp | None = None,
-    historical_period_end: str | pd.Timestamp | None = None,
+    historical_period: str | pd.Timestamp | None = None,
 ) -> Path:
     model_score, target_store, _ = create_simulated_tables(seed=seed)
     model_score = model_score.copy()
