@@ -123,17 +123,20 @@ def _make_figure(metrics: pd.DataFrame, default_percentile: int = 20) -> go.Figu
         rows=2,
         cols=1,
         shared_xaxes=True,
-        vertical_spacing=0.13,
+        vertical_spacing=0.09,
         subplot_titles=("Cumulative Gain Chart", "Cumulative Success Rate Chart"),
     )
 
     x = metrics["contacted_percentile"]
+    selected_row = metrics.loc[metrics["contacted_percentile"] == default_percentile].iloc[0]
+    selected_gain = float(selected_row["gain_pct"])
+    selected_sr = float(selected_row["cumulative_success_rate_pct"])
     fig.add_trace(
         go.Scatter(
             x=x,
             y=metrics["gain_pct"],
             mode="lines+markers",
-            name="Model Gain",
+            name="Model",
             line={"color": "#0057D9", "width": 3},
             marker={"size": 4},
             hovertemplate="Contacted: %{x}%<br>Gain: %{y:.2f}%<extra></extra>",
@@ -146,8 +149,8 @@ def _make_figure(metrics: pd.DataFrame, default_percentile: int = 20) -> go.Figu
             x=x,
             y=metrics["random_baseline_gain_pct"],
             mode="lines",
-            name="Random Baseline",
-            line={"color": "#64748B", "width": 2, "dash": "dash"},
+            name="Random",
+            line={"color": "#94A3B8", "width": 1.5, "dash": "dash"},
             hovertemplate="Contacted: %{x}%<br>Baseline gain: %{y:.2f}%<extra></extra>",
         ),
         row=1,
@@ -158,21 +161,9 @@ def _make_figure(metrics: pd.DataFrame, default_percentile: int = 20) -> go.Figu
             x=x,
             y=metrics["ideal_gain_pct"],
             mode="lines",
-            name="Ideal Gain",
-            line={"color": "#0891B2", "width": 2, "dash": "dot"},
+            name="Ideal",
+            line={"color": "#CBD5E1", "width": 1.5, "dash": "dot"},
             hovertemplate="Contacted: %{x}%<br>Ideal gain: %{y:.2f}%<extra></extra>",
-        ),
-        row=1,
-        col=1,
-    )
-    fig.add_trace(
-        go.Scatter(
-            x=x,
-            y=metrics["non_success_share_pct"],
-            mode="lines",
-            name="Cumulative Non-Success Share",
-            line={"color": "#DC2626", "width": 2, "dash": "dashdot"},
-            hovertemplate="Contacted: %{x}%<br>Non-success share: %{y:.2f}%<extra></extra>",
         ),
         row=1,
         col=1,
@@ -182,7 +173,7 @@ def _make_figure(metrics: pd.DataFrame, default_percentile: int = 20) -> go.Figu
             x=x,
             y=metrics["cumulative_success_rate_pct"],
             mode="lines+markers",
-            name="Cumulative Success Rate",
+            name="Success Rate",
             line={"color": "#059669", "width": 3},
             marker={"size": 4},
             hovertemplate="Contacted: %{x}%<br>Success rate: %{y:.2f}%<extra></extra>",
@@ -195,6 +186,7 @@ def _make_figure(metrics: pd.DataFrame, default_percentile: int = 20) -> go.Figu
         title_text="Contacted Population Percentile (%)",
         row=2,
         col=1,
+        range=[1, 100],
         showline=True,
         linewidth=1,
         linecolor="#94A3B8",
@@ -202,6 +194,7 @@ def _make_figure(metrics: pd.DataFrame, default_percentile: int = 20) -> go.Figu
         tickcolor="#94A3B8",
         dtick=10,
     )
+    fig.update_xaxes(showticklabels=False, row=1, col=1)
     fig.update_yaxes(
         title_text="Gain / Share (%)",
         row=1,
@@ -212,6 +205,7 @@ def _make_figure(metrics: pd.DataFrame, default_percentile: int = 20) -> go.Figu
         linecolor="#94A3B8",
         gridcolor="#E2E8F0",
     )
+    fig.update_yaxes(zeroline=False)
     fig.update_yaxes(
         title_text="Success Rate (%)",
         row=2,
@@ -228,141 +222,114 @@ def _make_figure(metrics: pd.DataFrame, default_percentile: int = 20) -> go.Figu
     best_ks_row = metrics.loc[metrics["contacted_percentile"] == best_ks_percentile].iloc[0]
     best_ks_value = float(best_ks_row["ks_pct"])
 
-    def slider_layout_for(percentile_value: int) -> dict:
-        row = metrics.loc[metrics["contacted_percentile"] == percentile_value].iloc[0]
-        gain = float(row["gain_pct"])
-        success_rate = float(row["cumulative_success_rate_pct"])
-        contacted_clients = int(row["cum_clients"])
-        successes = int(row["cum_successes"])
-        total_successes = int(row["total_successes"])
-
-        dynamic_annotations = [
-            dict(
-                x=0.5,
-                y=1.1,
-                xref="paper",
-                yref="paper",
-                text=(
-                    f"Selected cutoff: Top {percentile_value}% ({contacted_clients:,} clients) | "
-                    f"Gain {gain:.1f}% | Success rate {success_rate:.1f}% | "
-                    f"Captured successes {successes:,}/{total_successes:,}"
-                ),
-                showarrow=False,
-                font={"size": 13, "color": "#0F172A"},
-                align="center",
-                bgcolor="rgba(248,250,252,0.92)",
-                bordercolor="#CBD5E1",
-                borderwidth=1,
-                borderpad=4,
-            ),
-            dict(
-                x=best_ks_percentile,
-                y=101,
-                xref="x",
-                yref="y",
-                text=f"Optimal cutoff (max KS {best_ks_value:.1f}pp): {best_ks_percentile}%",
-                showarrow=False,
-                bgcolor="rgba(15,23,42,0.88)",
-                bordercolor="#0F172A",
-                borderwidth=1,
-                borderpad=4,
-                font={"size": 11, "color": "#F8FAFC"},
-            ),
-        ]
-        return {
-            "shapes": [
-                dict(
-                    type="line",
-                    name="selected_cutoff",
-                    xref="x",
-                    yref="paper",
-                    x0=percentile_value,
-                    x1=percentile_value,
-                    y0=0.0,
-                    y1=1.0,
-                    line={"color": "#E11D48", "width": 2, "dash": "dot"},
-                ),
-                dict(
-                    type="line",
-                    name="ks_optimal_split",
-                    xref="x",
-                    yref="paper",
-                    x0=best_ks_percentile,
-                    x1=best_ks_percentile,
-                    y0=0.0,
-                    y1=1.0,
-                    line={"color": "#334155", "width": 2, "dash": "dash"},
-                ),
-            ],
-            "annotations": base_annotations + dynamic_annotations,
-        }
-
-    steps = [
-        {
-            "method": "relayout",
-            "label": str(percentile_value),
-            "args": [slider_layout_for(percentile_value)],
-        }
-        for percentile_value in range(1, 101)
+    annotations = base_annotations + [
+        dict(
+            x=default_percentile,
+            y=selected_gain,
+            xref="x",
+            yref="y",
+            text=f"Top {default_percentile}% -> SR {selected_sr:.1f}%, Gain {selected_gain:.1f}%",
+            showarrow=True,
+            arrowhead=2,
+            ax=26,
+            ay=-34,
+            bgcolor="rgba(255,255,255,0.94)",
+            bordercolor="#E11D48",
+            borderwidth=1,
+            borderpad=4,
+            font={"size": 11, "color": "#0F172A"},
+        ),
+        dict(
+            x=best_ks_percentile,
+            y=101,
+            xref="x",
+            yref="y",
+            text=f"Optimal cutoff (max KS {best_ks_value:.1f}pp): {best_ks_percentile}%",
+            showarrow=False,
+            bgcolor="rgba(248,250,252,0.95)",
+            bordercolor="#CBD5E1",
+            borderwidth=1,
+            borderpad=4,
+            font={"size": 11, "color": "#334155"},
+        ),
+    ]
+    shapes = [
+        dict(
+            type="line",
+            name="selected_cutoff",
+            xref="x",
+            yref="paper",
+            x0=default_percentile,
+            x1=default_percentile,
+            y0=0.0,
+            y1=1.0,
+            line={"color": "#E11D48", "width": 2.2, "dash": "dot"},
+        ),
+        dict(
+            type="line",
+            name="ks_optimal_split",
+            xref="x",
+            yref="paper",
+            x0=best_ks_percentile,
+            x1=best_ks_percentile,
+            y0=0.0,
+            y1=1.0,
+            line={"color": "#94A3B8", "width": 1.4, "dash": "dash"},
+        ),
     ]
 
     fig.update_layout(
         paper_bgcolor="#FFFFFF",
         plot_bgcolor="#FFFFFF",
         title={
-            "text": "Model Performance Evaluation",
+            "text": "Model Performance",
             "x": 0.5,
             "xanchor": "center",
-            "font": {"size": 30, "color": "#0F172A", "family": "Segoe UI, Arial, sans-serif"},
+            "font": {"size": 28, "color": "#0F172A", "family": "Segoe UI, Arial, sans-serif"},
         },
         width=1180,
-        height=920,
-        margin={"l": 90, "r": 70, "t": 160, "b": 90},
-        hovermode="x",
+        height=940,
+        margin={"l": 92, "r": 55, "t": 120, "b": 90},
+        hovermode="x unified",
         legend={
             "orientation": "h",
             "yanchor": "bottom",
-            "y": 1.025,
+            "y": -0.06,
             "xanchor": "center",
             "x": 0.5,
             "font": {"size": 12, "color": "#334155"},
-            "bgcolor": "rgba(255,255,255,0.9)",
-            "bordercolor": "#E2E8F0",
-            "borderwidth": 1,
+            "bgcolor": "rgba(255,255,255,0)",
+            "tracegroupgap": 12,
         },
-        sliders=[
-            {
-                "active": max(0, min(99, default_percentile - 1)),
-                "currentvalue": {
-                    "prefix": "Contact percentile: ",
-                    "suffix": "%",
-                    "font": {"size": 14, "color": "#0F172A"},
-                },
-                "pad": {"t": 28},
-                "len": 0.9,
-                "x": 0.05,
-                "ticklen": 6,
-                "bgcolor": "#F8FAFC",
-                "bordercolor": "#CBD5E1",
-                "borderwidth": 1,
-                "steps": steps,
-            }
-        ],
+        annotations=annotations,
+        shapes=shapes,
         font={"family": "Segoe UI, Arial, sans-serif", "size": 13, "color": "#0F172A"},
     )
-
-    fig.update_layout(**slider_layout_for(default_percentile))
     return fig
+
+
+def _build_cutoff_summary(metrics: pd.DataFrame, selected_percentile: int) -> dict[str, float | int]:
+    row = metrics.loc[metrics["contacted_percentile"] == selected_percentile].iloc[0]
+    return {
+        "selected_percentile": selected_percentile,
+        "contacted_clients": int(row["cum_clients"]),
+        "gain_pct": float(row["gain_pct"]),
+        "success_rate_pct": float(row["cumulative_success_rate_pct"]),
+        "captured_successes": int(row["cum_successes"]),
+        "total_successes": int(row["total_successes"]),
+    }
 
 
 def EvaluateModel(
     output_html_path: str | Path = "outputs/model_evaluation_report.html",
     seed: int | None = 42,
 ) -> Path:
+    selected_percentile = 20
     model_score, target_store, _ = create_simulated_tables(seed=seed)
     performance = _prepare_performance_data(model_score=model_score, target_store=target_store)
     metrics = _build_metrics_by_contact_percentile(performance=performance)
-    figure = _make_figure(metrics=metrics, default_percentile=20)
+    figure = _make_figure(metrics=metrics, default_percentile=selected_percentile)
+    summary = _build_cutoff_summary(metrics=metrics, selected_percentile=selected_percentile)
 
     output_path = Path(output_html_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -423,6 +390,44 @@ def EvaluateModel(
       font-size: 13px;
       color: var(--text-muted);
     }}
+    .subtitle {{
+      margin-top: 4px;
+      font-size: 14px;
+      color: var(--text-muted);
+    }}
+    .kpis {{
+      margin: 16px 0 8px 0;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 10px;
+    }}
+    .kpi {{
+      border: 1px solid var(--line-soft);
+      border-radius: 10px;
+      padding: 10px 12px;
+      background: linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%);
+    }}
+    .kpi-label {{
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }}
+    .kpi-value {{
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text-main);
+      line-height: 1.2;
+    }}
+    .footnote {{
+      margin-top: 10px;
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.5;
+      border-top: 1px solid var(--line-soft);
+      padding-top: 10px;
+    }}
     .accent {{
       color: var(--accent);
       font-weight: 600;
@@ -434,14 +439,37 @@ def EvaluateModel(
     <div class="header">
       <h1>Model Performance Evaluation</h1>
       <p>
-        Cumulative gain and cumulative success rate are measured on score-ranked clients, with success
-        defined as an observed event from scoring time through one calendar month.
+        Cumulative gain and cumulative success rate
       </p>
+      <div class="subtitle">Presentation view with selected and optimal cutoff markers.</div>
       <div class="meta">
         The dashed vertical marker indicates the <span class="accent">optimal cutoff by maximum KS separation</span>.
       </div>
     </div>
+    <div class="kpis">
+      <div class="kpi">
+        <div class="kpi-label">Selected cutoff</div>
+        <div class="kpi-value">Top {summary["selected_percentile"]}% ({summary["contacted_clients"]:,})</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Lift / Gain</div>
+        <div class="kpi-value">{summary["gain_pct"]:.1f}%</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Success rate @ cutoff</div>
+        <div class="kpi-value">{summary["success_rate_pct"]:.1f}%</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Captured successes</div>
+        <div class="kpi-value">{summary["captured_successes"]:,} / {summary["total_successes"]:,}</div>
+      </div>
+    </div>
     {fig_html}
+    <div class="footnote">
+      Definitions: Gain = cumulative share of all successes captured up to the selected percentile.
+      Success rate = cumulative successes divided by cumulative contacted clients.
+      Success is defined as an observed event from scoring time through one calendar month.
+    </div>
   </div>
 </body>
 </html>

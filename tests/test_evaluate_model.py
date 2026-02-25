@@ -34,17 +34,20 @@ def test_metrics_include_ks_and_non_success_columns() -> None:
     assert int(best_row["best_ks_percentile"]) == int(metrics["best_ks_percentile"].iat[0])
 
 
-def test_figure_has_additional_gain_and_ks_traces() -> None:
+def test_figure_has_presentation_trace_set_and_cutoff_markers() -> None:
     metrics = _build_metrics_by_contact_percentile(_performance_fixture())
     figure = _make_figure(metrics, default_percentile=20)
 
     trace_names = {trace.name for trace in figure.data}
-    assert "Model Gain" in trace_names
-    assert "Random Baseline" in trace_names
-    assert "Ideal Gain" in trace_names
-    assert "Cumulative Non-Success Share" in trace_names
+    assert "Model" in trace_names
+    assert "Random" in trace_names
+    assert "Ideal" in trace_names
+    assert "Success Rate" in trace_names
+    assert "Cumulative Non-Success Share" not in trace_names
     assert "KS" not in trace_names
 
     layout_dict = figure.to_plotly_json().get("layout", {})
+    assert "sliders" not in layout_dict or not layout_dict["sliders"]
     shapes = layout_dict.get("shapes", [])
+    assert any(shape.get("name") == "selected_cutoff" for shape in shapes)
     assert any(shape.get("name") == "ks_optimal_split" for shape in shapes)

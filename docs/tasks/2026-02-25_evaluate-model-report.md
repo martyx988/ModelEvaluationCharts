@@ -217,3 +217,73 @@ Redesign the report and charts to professional reporting standards, and replace 
 
 ## Final Summary
 Slice 3 completed. The report visual design has been polished for professional presentation, and KS is now represented only by an optimal-cutoff vertical marker (no KS line trace).
+
+---
+
+# Slice 4 - Presentation Layout and Visual Hierarchy
+
+## Task Contract
+
+### Goal
+Implement a presentation-ready redesign with external KPI cards, simplified gain chart traces, clearer cutoff storytelling, and cleaner subplot/legend structure.
+
+### Acceptance Criteria
+- KPI summary is rendered in a separate HTML header card row, not inside plot area.
+- Top chart visually emphasizes Model line and de-emphasizes baselines.
+- Legend is outside the plotting area and uses concise labels.
+- Selected cutoff is the primary vertical marker and has one concise callout.
+- Optimal cutoff remains a secondary, lighter reference marker.
+- Shared x-axis remains, with reduced clutter and tighter subplot spacing.
+- Footer definitions are present below charts.
+
+### Non-Goals
+- Changing model/event matching logic.
+- Adding new data sources.
+
+### Assumptions / Open Questions
+- Assumption: presentation version can remove slider and use fixed selected cutoff (default 20%).
+
+## Strategic Plan
+- Add tests for simplified trace set, no slider, and cutoff markers.
+- Refactor figure to static presentation view (no slider annotations).
+- Add KPI cards and footnote text to HTML shell.
+- Re-verify with tests and report generation.
+
+## Tactical Plan
+- [x] Update tests to reflect simplified trace names and no slider.
+- [x] Implement static selected cutoff + optimal cutoff markers with concise callout.
+- [x] Simplify gain chart lines to Model/Random/Ideal (remove non-success trace from display).
+- [x] Add HTML KPI cards above figure and definitions footnote below.
+- [x] Run pytest and regenerate report.
+
+## Architecture Notes
+- Public API unchanged.
+- Internal helper addition:
+  - derive selected-cutoff KPI values from `metrics` for header cards.
+- Figure contract:
+  - no slider
+  - static lines/shapes/annotations for selected and optimal cutoffs.
+
+## Test Plan
+
+### Automated tests (what/where)
+- `tests/test_evaluate_model.py`:
+  - assert simplified trace names (`Model`, `Random`, `Ideal`, `Success Rate`)
+  - assert no sliders in layout
+  - assert both `selected_cutoff` and `ks_optimal_split` shapes exist.
+
+### Manual verification script
+- Run: `python -m pytest -q`
+- Run: `python evaluate_model.py`
+- Open `outputs/model_evaluation_report.html` and review KPI cards + clean chart layout.
+
+## Progress Log
+- 2026-02-25: Opened Slice 4 for presentation-style chart and report redesign.
+- 2026-02-25: Updated tests to require presentation trace names, no slider, and both cutoff marker shapes.
+- 2026-02-25: Refactored figure to static presentation mode with shared x-axis clarity, cleaner legend placement, and concise selected-cutoff callout.
+- 2026-02-25: Simplified top chart display to Model/Random/Ideal and removed displayed non-success line.
+- 2026-02-25: Added KPI card row and definitions footnote to HTML report shell.
+- 2026-02-25: Verified with `python -m pytest -q` (2 passed) and `python evaluate_model.py` (report regenerated).
+
+## Final Summary
+Slice 4 completed. The report now uses a presentation-ready layout with KPI cards above the charts, simplified gain-chart styling, one hero selected-cutoff marker, a secondary optimal-cutoff marker, and a cleaner overall visual hierarchy.
