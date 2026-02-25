@@ -16,7 +16,10 @@ def create_simulated_tables(seed: int | None = 42) -> tuple[pd.DataFrame, pd.Dat
 
     client_ids = np.arange(1, 10001)
 
-    scores = rng.random(client_ids.size)
+    # Realistic model score shape: many low-risk clients, fewer high-risk clients.
+    latent_risk = rng.beta(2.2, 7.0, size=client_ids.size)
+    model_noise = rng.normal(0.0, 0.06, size=client_ids.size)
+    scores = np.clip(0.88 * latent_risk + 0.12 * (1.0 - latent_risk) + model_noise, 0.0, 1.0)
     # Convert score ranks to integer percentiles in inclusive range 1..100.
     percentiles = (
         pd.Series(scores)
@@ -37,7 +40,10 @@ def create_simulated_tables(seed: int | None = 42) -> tuple[pd.DataFrame, pd.Dat
         }
     )
 
-    target_ids = rng.choice(client_ids, size=1000, replace=False)
+    # Successes are more likely for higher scored clients.
+    success_weights = np.power(np.clip(scores, 1e-6, 1.0), 2.8)
+    success_prob = success_weights / success_weights.sum()
+    target_ids = rng.choice(client_ids, size=1000, replace=False, p=success_prob)
     feb_start = pd.Timestamp("2026-02-01")
     mar_start = pd.Timestamp("2026-03-01")
     total_seconds = int((mar_start - feb_start).total_seconds())
