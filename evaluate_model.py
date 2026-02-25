@@ -153,6 +153,30 @@ def _resolve_historical_scores(
     return historical, _format_period_label(ts, ts)
 
 
+def _resolve_historical_period_input(
+    historical_period: str | pd.Timestamp | None,
+    historical_period_start: str | pd.Timestamp | None,
+    historical_period_end: str | pd.Timestamp | None,
+) -> str | pd.Timestamp | None:
+    has_legacy_args = historical_period_start is not None or historical_period_end is not None
+    if historical_period is not None and has_legacy_args:
+        raise ValueError("Use either historical_period or historical_period_start/end, not both.")
+    if not has_legacy_args:
+        return historical_period
+
+    try:
+        start_ts = pd.to_datetime(historical_period_start) if historical_period_start is not None else None
+        end_ts = pd.to_datetime(historical_period_end) if historical_period_end is not None else None
+    except (TypeError, ValueError) as exc:
+        raise ValueError("historical_period_start/end must be parseable dates.") from exc
+
+    if start_ts is not None and end_ts is not None and start_ts.to_period("M") != end_ts.to_period("M"):
+        raise ValueError("historical_period_start and historical_period_end must fall in the same calendar month.")
+
+    resolved = end_ts if end_ts is not None else start_ts
+    return resolved
+
+
 def _required_cutoff_for_desired_rate(metrics: pd.DataFrame, desired_rate: float) -> int:
     eligible = metrics.loc[metrics["cumulative_success_rate_pct"] >= desired_rate, "contacted_percentile"]
     if eligible.empty:
@@ -1112,7 +1136,14 @@ def EvaluateModel(
     include_campaign_selection: bool = False,
     campaign_clients: pd.DataFrame | None = None,
     historical_period: str | pd.Timestamp | None = None,
+    historical_period_start: str | pd.Timestamp | None = None,
+    historical_period_end: str | pd.Timestamp | None = None,
 ) -> Path:
+    historical_period = _resolve_historical_period_input(
+        historical_period=historical_period,
+        historical_period_start=historical_period_start,
+        historical_period_end=historical_period_end,
+    )
     model_score, target_store, _ = create_simulated_tables(seed=seed)
     model_score = model_score.copy()
     model_score["fs_time"] = pd.to_datetime(model_score["fs_time"], errors="coerce")

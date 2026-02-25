@@ -52,11 +52,12 @@ def create_simulated_tables(seed: int | None = 42) -> tuple[pd.DataFrame, pd.Dat
 
     model_score = pd.concat(score_frames, ignore_index=True)
 
-    # Create events for the month after each score snapshot; later snapshots have slightly sharper targeting.
+    # Create events for the month after each score snapshot.
+    # Keep sampling linear in score so realized outcomes align with score-based expected metrics.
     target_frames: list[pd.DataFrame] = []
     for idx, fs_time in enumerate(fs_times):
         scores = monthly_scores[fs_time]
-        success_weights = np.power(np.clip(scores, 1e-6, 1.0), 1.8 + 0.2 * idx)
+        success_weights = np.clip(scores, 1e-6, 1.0)
         success_prob = success_weights / success_weights.sum()
         target_ids = rng.choice(client_ids, size=monthly_target_sizes[idx], replace=False, p=success_prob)
         month_start = fs_time + pd.DateOffset(days=1)

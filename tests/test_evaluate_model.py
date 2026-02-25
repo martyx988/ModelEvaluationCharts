@@ -1,8 +1,16 @@
 from __future__ import annotations
 
 import pandas as pd
+import pytest
 
-from evaluate_model import EvaluateModel, _build_metrics_by_contact_percentile, _make_figure
+from evaluate_model import (
+    EvaluateModel,
+    _build_estimated_metrics_by_contact_percentile,
+    _build_metrics_by_contact_percentile,
+    _make_figure,
+    _prepare_campaign_estimated_performance,
+    _prepare_performance_data,
+)
 from evaluate_model_msp import EvaluateModel_msp
 from simulated_data import create_simulated_tables
 
@@ -145,3 +153,86 @@ def test_campaign_selection_report_displays_actual_and_historical_periods(tmp_pa
     html = output.read_text(encoding="utf-8")
     assert "Campaign Selection Potential" in html
     assert "Expected successes are estimated from model score sums" in html
+
+
+def test_evaluatemodel_accepts_legacy_historical_period_start_end_kwargs(tmp_path) -> None:
+    model_score, _, _ = create_simulated_tables(seed=42)
+    campaign_clients = model_score[["pt_unified_key"]].drop_duplicates().head(120).copy()
+    output = tmp_path / "legacy_period_args.html"
+
+    EvaluateModel(
+        output_html_path=output,
+        seed=42,
+        include_campaign_selection=True,
+        campaign_clients=campaign_clients,
+        historical_period_start="2025-12-01",
+        historical_period_end="2025-12-31",
+    )
+
+    assert output.exists()
+    html = output.read_text(encoding="utf-8")
+    assert "Campaign Selection Potential" in html
+
+
+def test_evaluatemodel_rejects_conflicting_historical_args(tmp_path) -> None:
+    model_score, _, _ = create_simulated_tables(seed=42)
+    campaign_clients = model_score[["pt_unified_key"]].drop_duplicates().head(120).copy()
+    output = tmp_path / "conflict_period_args.html"
+
+    with pytest.raises(ValueError, match="Use either historical_period or historical_period_start/end"):
+        EvaluateModel(
+            output_html_path=output,
+            seed=42,
+            include_campaign_selection=True,
+            campaign_clients=campaign_clients,
+            historical_period="2025-12-31",
+            historical_period_start="2025-12-01",
+        )
+
+
+def test_evaluatemodel_rejects_legacy_period_month_mismatch(tmp_path) -> None:
+    model_score, _, _ = create_simulated_tables(seed=42)
+    campaign_clients = model_score[["pt_unified_key"]].drop_duplicates().head(120).copy()
+    output = tmp_path / "mismatch_period_args.html"
+
+    with pytest.raises(ValueError, match="must fall in the same calendar month"):
+        EvaluateModel(
+            output_html_path=output,
+            seed=42,
+            include_campaign_selection=True,
+            campaign_clients=campaign_clients,
+            historical_period_start="2025-11-30",
+            historical_period_end="2025-12-01",
+        )
+
+
+def test_all_client_campaign_curves_align_with_top_curves_for_simulated_data() -> None:
+    model_score, target_store, _ = create_simulated_tables(seed=42)
+    scored = model_score.copy()
+    scored["fs_time"] = pd.to_datetime(scored["fs_time"])
+    latest = scored.loc[scored["fs_time"] == scored["fs_time"].max()].copy()
+
+    top_performance = _prepare_performance_data(model_score=latest, target_store=target_store)
+    top_metrics = _build_metrics_by_contact_percentile(performance=top_performance)
+
+    all_clients = latest[["pt_unified_key"]].copy()
+    campaign_scored = _prepare_campaign_estimated_performance(
+        latest_model_score=latest,
+        campaign_clients=all_clients,
+    )
+    campaign_metrics = _build_estimated_metrics_by_contact_percentile(campaign_scored=campaign_scored)
+
+    merged = top_metrics[
+        ["contacted_percentile", "gain_pct", "cumulative_success_rate_pct"]
+    ].merge(
+        campaign_metrics[["contacted_percentile", "gain_pct", "cumulative_success_rate_pct"]],
+        on="contacted_percentile",
+        suffixes=("_actual", "_estimated"),
+    )
+
+    max_gain_diff = (merged["gain_pct_actual"] - merged["gain_pct_estimated"]).abs().max()
+    max_sr_diff = (
+        merged["cumulative_success_rate_pct_actual"] - merged["cumulative_success_rate_pct_estimated"]
+    ).abs().max()
+    assert max_gain_diff < 8.0
+    assert max_sr_diff < 8.0
