@@ -126,21 +126,14 @@ def _required_cutoff_for_desired_rate(metrics: pd.DataFrame, desired_rate: float
     return int(eligible.max())
 
 
-def _success_bar_colors(metrics: pd.DataFrame, desired_rate: float) -> list[str]:
-    sr = metrics["cumulative_success_rate_pct"].astype(float)
-    max_dist = max(
-        abs(float(sr.max()) - desired_rate),
-        abs(float(sr.min()) - desired_rate),
-        1e-9,
-    )
+def _success_bar_colors(metrics: pd.DataFrame, required_cutoff: int) -> list[str]:
+    percentiles = metrics["contacted_percentile"].astype(int)
     colors: list[str] = []
-    for value in sr:
-        dist = abs(float(value) - desired_rate) / max_dist
-        alpha = 0.32 + 0.56 * dist
-        if value >= desired_rate:
-            colors.append(f"rgba(5, 150, 105, {alpha:.3f})")
+    for percentile in percentiles:
+        if percentile <= required_cutoff:
+            colors.append("rgba(0, 87, 217, 0.80)")
         else:
-            colors.append(f"rgba(220, 38, 38, {alpha:.3f})")
+            colors.append("rgba(148, 163, 184, 0.28)")
     return colors
 
 
@@ -209,7 +202,7 @@ def _make_figure(
             y=metrics["cumulative_success_rate_pct"],
             name="Success Rate",
             marker={
-                "color": _success_bar_colors(metrics=metrics, desired_rate=desired_success_rate),
+                "color": _success_bar_colors(metrics=metrics, required_cutoff=required_cutoff),
                 "line": {"color": "rgba(15, 23, 42, 0.12)", "width": 0.6},
             },
             hovertemplate="Contacted: %{x}%<br>Success rate: %{y:.2f}%<extra></extra>",
@@ -701,8 +694,8 @@ def EvaluateModel(
           </p>
           <strong>Bar colors</strong>
           <p>
-            Green bars are at/above target, red bars below target. Stronger shading means further distance
-            from your selected threshold.
+            Blue bars are inside the chosen percentile range for your desired success rate.
+            Gray-shadow bars are outside the chosen range.
           </p>
         </section>
       </aside>
@@ -711,8 +704,6 @@ def EvaluateModel(
   <script>
     const cutoffData = {json.dumps(cutoff_points)};
     const bestKsPercentile = {best_ks_percentile};
-    const desiredRateMin = {metrics['cumulative_success_rate_pct'].min():.4f};
-    const desiredRateMax = {metrics['cumulative_success_rate_pct'].max():.4f};
 
     function formatInt(x) {{
       return Number(x).toLocaleString("en-US");
@@ -741,14 +732,11 @@ def EvaluateModel(
       return required;
     }}
 
-    function barColor(sr, desiredRate) {{
-      const maxDist = Math.max(Math.abs(desiredRateMax - desiredRate), Math.abs(desiredRateMin - desiredRate), 1e-9);
-      const dist = Math.abs(sr - desiredRate) / maxDist;
-      const alpha = 0.32 + 0.56 * dist;
-      if (sr >= desiredRate) {{
-        return `rgba(5,150,105,${{alpha.toFixed(3)}})`;
+    function barColorForRequired(point, required) {{
+      if (point.p <= required) {{
+        return "rgba(0,87,217,0.80)";
       }}
-      return `rgba(220,38,38,${{alpha.toFixed(3)}})`;
+      return "rgba(148,163,184,0.28)";
     }}
 
     function updateDesiredRateUi(desiredRate) {{
@@ -760,7 +748,7 @@ def EvaluateModel(
       if (!gd || !gd.layout || !gd.layout.annotations || gd.layout.annotations.length < 5) {{
         return false;
       }}
-      const colors = cutoffData.map((point) => barColor(point.sr, desiredRate));
+      const colors = cutoffData.map((point) => barColorForRequired(point, required));
       Plotly.restyle(gd, {{
         "marker.color": [colors]
       }}, [3]);

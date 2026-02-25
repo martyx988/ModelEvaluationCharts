@@ -533,3 +533,43 @@ Synchronize selected-cutoff and desired-success-rate controls bidirectionally, a
 
 ## Final Summary
 Slice 8 completed. The selected cutoff and desired success-rate controls are now fully synchronized in both directions, and the right-side chart explanations are vertically centered within their chart-aligned panels.
+
+---
+
+# Slice 9 - Desired-Rate Color Semantics (Chosen vs Unused)
+
+## Task Contract
+
+### Goal
+When desired success rate changes, recolor bottom bars so chosen percentiles are blue and unused percentiles are shadow gray.
+
+### Acceptance Criteria
+- Desired-rate interaction recolors bars by required cutoff boundary.
+- Percentiles up to required cutoff are blue.
+- Percentiles above required cutoff are shadow gray.
+- Initial render uses the same color semantics.
+
+### Non-Goals
+- Changing the cutoff/desired-rate synchronization logic.
+
+## Strategic Plan
+- Add test assertion for new color-classification JS hook.
+- Update figure default bar colors to chosen/unused scheme.
+- Update client-side recoloring logic used by desired-rate interaction.
+
+## Tactical Plan
+- [x] Add test for chosen-vs-unused color hook.
+- [x] Update Python-side default bar colors to blue/shadow by required cutoff.
+- [x] Update JS recoloring to use required-cutoff boundary.
+- [x] Run pytest and regenerate report.
+
+## Progress Log
+- 2026-02-25: Opened Slice 9 for chosen-vs-unused bar coloring based on desired-rate interaction.
+- 2026-02-25: Added report-level assertion for required-cutoff-based color hook in HTML JS.
+- 2026-02-25: Switched default bar palette to required-cutoff semantics (blue for chosen, shadow gray for unused).
+- 2026-02-25: Updated desired-rate interaction recolor logic to classify by percentile boundary (`point.p <= required`).
+- 2026-02-25: Updated guide copy to reflect blue/gray bar semantics.
+- 2026-02-25: Verified with `python -m pytest -q` (3 passed) and regenerated report.
+
+## Final Summary
+Slice 9 completed. Desired-rate interactions now recolor the bottom chart with blue for chosen percentiles and shadow gray for unused percentiles, both on initial render and during live updates.
