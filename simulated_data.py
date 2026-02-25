@@ -17,11 +17,14 @@ def create_simulated_tables(seed: int | None = 42) -> tuple[pd.DataFrame, pd.Dat
     client_ids = np.arange(1, 10001)
 
     scores = rng.random(client_ids.size)
+    # Convert score ranks to integer percentiles in inclusive range 1..100.
     percentiles = (
         pd.Series(scores)
         .rank(method="average", pct=True)
         .mul(100)
-        .round(4)
+        .apply(np.ceil)
+        .clip(1, 100)
+        .astype(int)
         .to_numpy()
     )
 
