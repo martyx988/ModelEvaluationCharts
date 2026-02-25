@@ -510,7 +510,7 @@ def _make_campaign_selection_figure(
         vertical_spacing=0.18,
         subplot_titles=(
             "Selection Success Rate Benchmark (Actual vs Historical)",
-            "Cumulative Success Rate Context by Score Period",
+            "How Model Success Rate Changes by Contact Volume",
         ),
     )
 
@@ -578,7 +578,8 @@ def _make_campaign_selection_figure(
     )
 
     vol = int(actual_summary["volume_percentile"])
-    sel_rate = float(actual_summary["selected_rate_pct"])
+    actual_model_rate_at_vol = float(actual_summary["model_curve_rate_pct"])
+    historical_model_rate_at_vol = float(historical_summary["model_curve_rate_pct"])
     fig.update_layout(
         barmode="group",
         shapes=[
@@ -589,36 +590,56 @@ def _make_campaign_selection_figure(
                 x0=vol,
                 x1=vol,
                 y0=0.0,
-                y1=0.44,
-                line={"color": "#2563EB", "width": 1.8, "dash": "dot"},
-            ),
-            dict(
-                type="line",
-                xref="paper",
-                yref="y2",
-                x0=0.0,
-                x1=1.0,
-                y0=sel_rate,
-                y1=sel_rate,
-                line={"color": "#DC2626", "width": 1.4, "dash": "dash"},
+                y1=0.42,
+                line={"color": "#0F172A", "width": 1.4, "dash": "dot"},
             ),
         ],
         annotations=[
             dict(
                 x=vol,
-                y=sel_rate,
+                y=actual_model_rate_at_vol,
                 xref="x2",
                 yref="y2",
-                text=f"Actual selection rate: {sel_rate:.1f}% @ ~{vol}% ({actual_period_label})",
+                text=f"Campaign size: ~{vol}% of clients",
                 showarrow=True,
                 arrowhead=2,
-                ax=24,
-                ay=-28,
+                ax=20,
+                ay=-34,
                 bgcolor="rgba(255,255,255,0.95)",
                 bordercolor="#CBD5E1",
                 borderwidth=1,
                 font={"size": 11, "color": "#0F172A"},
-            )
+            ),
+            dict(
+                x=vol,
+                y=actual_model_rate_at_vol,
+                xref="x2",
+                yref="y2",
+                text=f"Actual model SR: {actual_model_rate_at_vol:.1f}%",
+                showarrow=False,
+                xanchor="left",
+                yanchor="bottom",
+                bgcolor="rgba(37,99,235,0.10)",
+                bordercolor="#2563EB",
+                borderwidth=1,
+                borderpad=3,
+                font={"size": 10, "color": "#1E3A8A"},
+            ),
+            dict(
+                x=vol,
+                y=historical_model_rate_at_vol,
+                xref="x2",
+                yref="y2",
+                text=f"Historical model SR: {historical_model_rate_at_vol:.1f}%",
+                showarrow=False,
+                xanchor="left",
+                yanchor="top",
+                bgcolor="rgba(148,163,184,0.16)",
+                bordercolor="#64748B",
+                borderwidth=1,
+                borderpad=3,
+                font={"size": 10, "color": "#334155"},
+            ),
         ],
         paper_bgcolor="#FFFFFF",
         plot_bgcolor="#FFFFFF",
@@ -630,6 +651,32 @@ def _make_campaign_selection_figure(
     fig.update_yaxes(title_text="Success Rate (%)", row=1, col=1, rangemode="tozero", gridcolor="#E2E8F0")
     fig.update_yaxes(title_text="Success Rate (%)", row=2, col=1, rangemode="tozero", gridcolor="#E2E8F0")
     fig.update_xaxes(title_text="Contacted Percentile (%)", row=2, col=1, dtick=10)
+    fig.add_trace(
+        go.Scatter(
+            x=[vol],
+            y=[actual_model_rate_at_vol],
+            mode="markers",
+            marker={"size": 10, "color": "#2563EB", "line": {"color": "#FFFFFF", "width": 1}},
+            name=f"Actual @ {vol}%",
+            hovertemplate=f"Actual @ {vol}%: %{{y:.2f}}%<extra></extra>",
+            showlegend=False,
+        ),
+        row=2,
+        col=1,
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=[vol],
+            y=[historical_model_rate_at_vol],
+            mode="markers",
+            marker={"size": 10, "color": "#64748B", "line": {"color": "#FFFFFF", "width": 1}},
+            name=f"Historical @ {vol}%",
+            hovertemplate=f"Historical @ {vol}%: %{{y:.2f}}%<extra></extra>",
+            showlegend=False,
+        ),
+        row=2,
+        col=1,
+    )
     return fig
 
 

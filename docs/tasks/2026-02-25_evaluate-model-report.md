@@ -692,3 +692,28 @@ Extend simulated scoring data to include monthly snapshots with January 2026 as 
 
 ## Final Summary
 Slice 13 completed. The report now treats January 2026 as newest actual model scores, computes baseline charts from that snapshot, and supports campaign selection comparison against a user-defined historical scoring period with explicit time-period labels in the comparison visuals.
+
+---
+
+# Slice 14 - Notebook Single Historical Date + Clearer Campaign Comparison Chart
+
+## Task Contract
+
+### Goal
+Set notebook campaign comparison to one historical period date (`2025-12-31`) and improve campaign comparison chart readability, especially the second success-rate chart.
+
+### Tactical Plan
+- [x] Update notebook `EvaluateModel` campaign call to fixed historical start/end = `2025-12-31`.
+- [x] Redesign second campaign comparison chart for clearer business interpretation.
+- [x] Keep actual/historical period labeling visible in comparison visuals.
+- [x] Run pytest and regenerate report.
+
+## Progress Log
+- 2026-02-25: Opened Slice 14 for notebook historical-date configuration and campaign chart clarity improvements.
+- 2026-02-25: Updated notebook campaign-mode call to use single historical date (`2025-12-31` start/end).
+- 2026-02-25: Redesigned second campaign comparison chart to remove confusing horizontal reference and emphasize campaign volume marker plus actual/historical model SR points.
+- 2026-02-25: Preserved explicit actual/historical period labels in section and chart legends.
+- 2026-02-25: Fixed hover-template interpolation issue and verified with `python -m pytest -q` (6 passed) and report regeneration.
+
+## Final Summary
+Slice 14 completed. Notebook now uses one historical period (`2025-12-31`), and the campaign comparison second chart is simplified for clearer business interpretation.
