@@ -3,13 +3,20 @@ $ErrorActionPreference = "Stop"
 $repoRoot = Split-Path -Path $PSScriptRoot -Parent
 Set-Location $repoRoot
 
-Write-Host "Installing notebook dependencies from requirements-notebook.txt..."
-python -m pip install -r requirements-notebook.txt
+$venvPython = Join-Path $repoRoot ".venv\Scripts\python.exe"
 
-Write-Host "Registering Jupyter kernel: modelevaluationcharts..."
-python -m ipykernel install --user --name modelevaluationcharts --display-name "Python (ModelEvaluationCharts)"
+if (-not (Test-Path $venvPython)) {
+  Write-Host "Creating project virtual environment (.venv)..."
+  py -3.11 -m venv .venv
+}
+
+Write-Host "Installing notebook dependencies into .venv from requirements-notebook.txt..."
+& $venvPython -m pip install -r requirements-notebook.txt
+
+Write-Host "Registering Jupyter kernel: modelevaluationcharts-venv..."
+& $venvPython -m ipykernel install --user --name modelevaluationcharts-venv --display-name "Python (ModelEvaluationCharts .venv)"
 
 Write-Host "Installed kernels:"
-python -m jupyter kernelspec list
+& $venvPython -m jupyter kernelspec list
 
 Write-Host "Notebook environment setup complete."
