@@ -160,6 +160,16 @@ def _required_cutoff_for_desired_rate(metrics: pd.DataFrame, desired_rate: float
     return int(eligible.max())
 
 
+def _success_bar_colors(metrics: pd.DataFrame, required_cutoff: int) -> list[str]:
+    colors: list[str] = []
+    for percentile in metrics["contacted_percentile"].astype(int):
+        if percentile <= required_cutoff:
+            colors.append("rgba(0, 87, 217, 0.80)")
+        else:
+            colors.append("rgba(148, 163, 184, 0.28)")
+    return colors
+
+
 def _success_rate_segments(
     metrics: pd.DataFrame,
     required_cutoff: int,
