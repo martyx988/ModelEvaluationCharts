@@ -755,3 +755,4 @@ Ensure notebook validation cell reflects current simulation design and executes 
 ## Progress Log
 - 2026-02-25: Added clarifying comment in notebook validation cell and retained corrected assertions (`>= 1000` unique targets, multi-month timestamp range).
 - 2026-02-25: Verified notebook execution via nbconvert and confirmed tests still pass (`6 passed`).
+- 2026-02-25: Re-verified after user-reported stale assertion; notebook validation cell confirmed with current assertions and successful execution.
