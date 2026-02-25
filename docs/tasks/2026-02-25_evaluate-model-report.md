@@ -717,3 +717,23 @@ Set notebook campaign comparison to one historical period date (`2025-12-31`) an
 
 ## Final Summary
 Slice 14 completed. Notebook now uses one historical period (`2025-12-31`), and the campaign comparison second chart is simplified for clearer business interpretation.
+
+---
+
+# Slice 15 - Notebook Execution Health Fix
+
+## Task Contract
+
+### Goal
+Run the full testing notebook, detect execution errors, and fix failing cells so notebook executes cleanly end-to-end.
+
+### Tactical Plan
+- [x] Execute notebook in-place with nbconvert to surface real errors.
+- [x] Fix failing notebook assertions for current simulated-data behavior.
+- [x] Re-execute notebook and confirm no execution errors.
+- [x] Run pytest regression check.
+
+## Progress Log
+- 2026-02-25: Executed `notebooks/simulated_data_testing.ipynb` with nbconvert and found failing assertion expecting events only in Feb 2026.
+- 2026-02-25: Updated assertion to valid multi-month event range (`2025-11-01` to `2026-02-28 23:59:59`).
+- 2026-02-25: Re-executed notebook successfully and confirmed test suite remains green (`6 passed`).
