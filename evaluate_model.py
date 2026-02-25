@@ -777,6 +777,54 @@ def _make_campaign_distribution_figure(distribution: pd.DataFrame) -> go.Figure:
     return fig
 
 
+def _make_campaign_rate_comparison_figure(
+    whole_base_default_sr_pct: float,
+    campaign_default_sr_pct: float,
+    top_equal_volume_sr_pct: float,
+) -> go.Figure:
+    labels = [
+        "Whole Base\n(Default)",
+        "Campaign Clients\n(Default)",
+        "Top-N by Score\n(Same Volume)",
+    ]
+    values = [
+        whole_base_default_sr_pct,
+        campaign_default_sr_pct,
+        top_equal_volume_sr_pct,
+    ]
+    colors = ["#94A3B8", "#0057D9", "#0EA5A4"]
+    fig = go.Figure(
+        data=[
+            go.Bar(
+                x=labels,
+                y=values,
+                marker={"color": colors},
+                text=[f"{v:.1f}%" for v in values],
+                textposition="outside",
+                hovertemplate="%{x}<br>Expected success rate: %{y:.2f}%<extra></extra>",
+            )
+        ]
+    )
+    fig.update_layout(
+        paper_bgcolor="#FFFFFF",
+        plot_bgcolor="#FFFFFF",
+        height=280,
+        margin={"l": 56, "r": 14, "t": 28, "b": 56},
+        showlegend=False,
+        font={"family": "Segoe UI, Arial, sans-serif", "size": 12, "color": "#0F172A"},
+    )
+    fig.update_yaxes(
+        title_text="Expected Success Rate (%)",
+        rangemode="tozero",
+        gridcolor="#E2E8F0",
+        showline=True,
+        linewidth=1,
+        linecolor="#94A3B8",
+    )
+    fig.update_xaxes(showline=True, linewidth=1, linecolor="#94A3B8")
+    return fig
+
+
 def _build_cutoff_summary(metrics: pd.DataFrame, selected_percentile: int) -> dict[str, float | int]:
     row = metrics.loc[metrics["contacted_percentile"] == selected_percentile].iloc[0]
     captured_successes = int(row["cum_successes"])
@@ -1121,6 +1169,32 @@ def EvaluateModel(
             latest_model_score=latest_model_score,
             campaign_scored=campaign_scored,
         )
+        all_base_estimated_metrics = _build_estimated_metrics_by_contact_percentile(
+            campaign_scored=latest_model_score[["pt_unified_key", "score", "percentile"]].copy()
+        )
+        whole_base_default_sr_pct = float(
+            all_base_estimated_metrics.loc[
+                all_base_estimated_metrics["contacted_percentile"] == selected_percentile,
+                "cumulative_success_rate_pct",
+            ].iloc[0]
+        )
+        campaign_default_sr_pct = float(
+            campaign_metrics.loc[
+                campaign_metrics["contacted_percentile"] == selected_percentile,
+                "cumulative_success_rate_pct",
+            ].iloc[0]
+        )
+        top_equal_volume = (
+            latest_model_score[["pt_unified_key", "score"]]
+            .copy()
+            .assign(score=lambda df: pd.to_numeric(df["score"], errors="coerce").clip(lower=0.0, upper=1.0))
+            .dropna(subset=["score"])
+            .sort_values("score", ascending=False, ignore_index=True)
+            .head(len(campaign_scored))
+        )
+        if top_equal_volume.empty:
+            raise ValueError("Unable to compute top-equal-volume success rate because no scored clients are available.")
+        top_equal_volume_sr_pct = float(top_equal_volume["score"].mean() * 100.0)
         campaign_required_cutoff = _required_cutoff_for_desired_rate(
             metrics=campaign_metrics,
             desired_rate=desired_success_rate,
@@ -1131,11 +1205,21 @@ def EvaluateModel(
             required_cutoff=campaign_required_cutoff,
         )
         campaign_distribution_figure = _make_campaign_distribution_figure(distribution=campaign_distribution)
+        campaign_rate_compare_figure = _make_campaign_rate_comparison_figure(
+            whole_base_default_sr_pct=whole_base_default_sr_pct,
+            campaign_default_sr_pct=campaign_default_sr_pct,
+            top_equal_volume_sr_pct=top_equal_volume_sr_pct,
+        )
 
         campaign_distribution_html = campaign_distribution_figure.to_html(
             full_html=False,
             include_plotlyjs=False,
             div_id="campaign-distribution-figure",
+        )
+        campaign_rate_compare_html = campaign_rate_compare_figure.to_html(
+            full_html=False,
+            include_plotlyjs=False,
+            div_id="campaign-rate-compare-figure",
         )
         campaign_gain_html = campaign_gain_figure.to_html(
             full_html=False,
@@ -1170,17 +1254,43 @@ def EvaluateModel(
       <p>
         Expected successes are estimated from model score sums on the campaign filtered base.
       </p>
-      <div class="plot-card campaign-wide-card" id="campaign-distribution-card">
-        <div class="plot-card-head">
-          <h3>Campaign Client Distribution by Score Percentile</h3>
-          <div class="tooltip-wrap">
-            <button class="tooltip-btn" type="button" aria-describedby="tooltip-campaign-distribution">?</button>
-            <div class="tooltip-body" id="tooltip-campaign-distribution">
-              Gray bars are all scored clients; blue bars are campaign clients in each percentile.
+      <div class="campaign-top-row">
+        <div class="plot-card" id="campaign-distribution-card">
+          <div class="plot-card-head">
+            <h3>Campaign Client Distribution by Score Percentile</h3>
+            <div class="tooltip-wrap">
+              <button class="tooltip-btn" type="button" aria-describedby="tooltip-campaign-distribution">?</button>
+              <div class="tooltip-body" id="tooltip-campaign-distribution">
+                <strong>How to read this chart</strong>
+                <p>Each percentile bucket shows where campaign clients sit in the model ranking.</p>
+                <ul>
+                  <li><strong>Gray bars:</strong> full scored population per percentile.</li>
+                  <li><strong>Blue bars:</strong> your campaign clients in the same percentile.</li>
+                  <li>More blue mass in higher percentiles means stronger targeting quality.</li>
+                </ul>
+              </div>
             </div>
           </div>
+          {campaign_distribution_html}
         </div>
-        {campaign_distribution_html}
+        <div class="plot-card" id="campaign-rate-compare-card">
+          <div class="plot-card-head">
+            <h3>Default Success Rate Comparison</h3>
+            <div class="tooltip-wrap">
+              <button class="tooltip-btn" type="button" aria-describedby="tooltip-campaign-rate-compare">?</button>
+              <div class="tooltip-body" id="tooltip-campaign-rate-compare">
+                <strong>How to read this chart</strong>
+                <p>Bars compare expected success rate under three business scenarios.</p>
+                <ul>
+                  <li><strong>Whole Base (Default):</strong> baseline expected quality at the default cutoff.</li>
+                  <li><strong>Campaign Clients (Default):</strong> expected quality of your selected audience.</li>
+                  <li><strong>Top-N by Score:</strong> the model-optimal audience at the same campaign size.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          {campaign_rate_compare_html}
+        </div>
       </div>
       <div class="chart-grid chart-grid-2">
         <div class="plot-card" id="campaign-gain-card">
@@ -1189,7 +1299,12 @@ def EvaluateModel(
             <div class="tooltip-wrap">
               <button class="tooltip-btn" type="button" aria-describedby="tooltip-campaign-gain">?</button>
               <div class="tooltip-body" id="tooltip-campaign-gain">
-                Gain on campaign clients only. Expected successes are based on cumulative predicted score.
+                <strong>How to read this chart</strong>
+                <p>Shows how much expected success volume is captured as contact depth increases.</p>
+                <ul>
+                  <li>Blue model line above gray random baseline indicates ranking value.</li>
+                  <li>The red marker tracks the currently selected cutoff from the slider.</li>
+                </ul>
               </div>
             </div>
           </div>
@@ -1201,7 +1316,12 @@ def EvaluateModel(
             <div class="tooltip-wrap">
               <button class="tooltip-btn" type="button" aria-describedby="tooltip-campaign-success">?</button>
               <div class="tooltip-body" id="tooltip-campaign-success">
-                Bars and cutoff line are computed on the campaign-only population.
+                <strong>How to read this chart</strong>
+                <p>Bars show cumulative expected conversion quality inside the campaign-only base.</p>
+                <ul>
+                  <li>Blue bars are within the cutoff required to hit desired success rate.</li>
+                  <li>Gray bars are outside that quality threshold.</li>
+                </ul>
               </div>
             </div>
           </div>
@@ -1267,8 +1387,12 @@ def EvaluateModel(
       padding: 8px 10px 6px 10px;
       min-width: 0;
     }}
-    .campaign-wide-card {{
+    .campaign-top-row {{
+      display: grid;
+      grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+      gap: 12px;
       margin: 8px 0 12px 0;
+      align-items: stretch;
     }}
     .plot-card-head {{
       display: flex;
@@ -1316,6 +1440,28 @@ def EvaluateModel(
       display: none;
       z-index: 12;
       box-shadow: 0 8px 20px rgba(15, 23, 42, 0.3);
+    }}
+    .tooltip-body strong {{
+      display: block;
+      margin-bottom: 4px;
+      font-size: 12px;
+      color: #FFFFFF;
+    }}
+    .tooltip-body p {{
+      margin: 0 0 6px 0;
+      font-size: 12px;
+      color: #E2E8F0;
+      line-height: 1.35;
+    }}
+    .tooltip-body ul {{
+      margin: 0;
+      padding-left: 16px;
+    }}
+    .tooltip-body li {{
+      margin: 0 0 4px 0;
+      color: #E2E8F0;
+      line-height: 1.3;
+      font-size: 12px;
     }}
     .tooltip-wrap:hover .tooltip-body {{
       display: block;
@@ -1448,6 +1594,9 @@ def EvaluateModel(
       color: var(--text-main);
     }}
     @media (max-width: 1100px) {{
+      .campaign-top-row {{
+        grid-template-columns: 1fr;
+      }}
       .chart-grid-2 {{
         grid-template-columns: 1fr;
       }}
@@ -1504,8 +1653,13 @@ def EvaluateModel(
             <div class="tooltip-wrap">
               <button class="tooltip-btn" type="button" aria-describedby="tooltip-top-gain">?</button>
               <div class="tooltip-body" id="tooltip-top-gain">
-                Gain shows the cumulative share of all successes captured up to each contact percentile.
-                Use the selected cutoff marker to balance campaign size and captured potential.
+                <strong>How to read this chart</strong>
+                <p>The gain chart answers how much of total potential you capture at each targeting depth.</p>
+                <ul>
+                  <li><strong>Model vs Random:</strong> earlier blue-vs-gray separation means better prioritization.</li>
+                  <li><strong>Red cutoff line:</strong> your current operating point from the slider.</li>
+                  <li>Use it to balance campaign reach versus captured value.</li>
+                </ul>
               </div>
             </div>
           </div>
@@ -1517,8 +1671,13 @@ def EvaluateModel(
             <div class="tooltip-wrap">
               <button class="tooltip-btn" type="button" aria-describedby="tooltip-top-success">?</button>
               <div class="tooltip-body" id="tooltip-top-success">
-                The desired success-rate slider selects the largest cutoff that still keeps cumulative
-                success rate at or above your target.
+                <strong>How to read this chart</strong>
+                <p>This chart shows cumulative quality of the contacted population.</p>
+                <ul>
+                  <li>Set a desired success rate target with the slider.</li>
+                  <li>The required cutoff marker shows the largest audience that still meets that target.</li>
+                  <li>Blue bars are within target; gray bars are outside target.</li>
+                </ul>
               </div>
             </div>
           </div>

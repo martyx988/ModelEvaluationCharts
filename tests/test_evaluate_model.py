@@ -89,11 +89,14 @@ def test_generated_report_includes_campaign_selection_section_when_enabled(tmp_p
     assert "Campaign Selection Potential" in html
     assert "Expected successes are estimated from model score sums" in html
     assert 'id="campaign-distribution-figure"' in html
+    assert 'id="campaign-rate-compare-figure"' in html
     assert 'id="campaign-gain-figure"' in html
     assert 'id="campaign-success-figure"' in html
     assert 'id="tooltip-campaign-distribution"' in html
+    assert 'id="tooltip-campaign-rate-compare"' in html
     assert 'id="tooltip-campaign-gain"' in html
     assert 'id="tooltip-campaign-success"' in html
+    assert "How to read this chart" in html
 
 
 def test_simulated_tables_include_latest_january_scores() -> None:

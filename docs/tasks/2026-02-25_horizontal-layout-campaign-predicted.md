@@ -73,6 +73,10 @@
 - 2026-02-25 (QA re-run, Gate PASS): Rechecked automated coverage on updated layout/section assertions; all tests green.
 - 2026-02-25 (Reviewer, Gate PASS): Verified acceptance criteria alignment, slider synchronization behavior, and campaign score-based estimation logic.
 - 2026-02-25 (Planner close-out, Gate PASS): Checklist updated with verified completion evidence.
+- 2026-02-25 (Intake/Planner follow-up, Gate PASS): Captured additional request to split campaign top row into 2/3 distribution + 1/3 comparison chart and expand tooltip guidance text.
+- 2026-02-25 (QA tests-first follow-up, Gate PASS): Extended HTML assertions for `campaign-rate-compare-figure`, `tooltip-campaign-rate-compare`, and richer tooltip text marker.
+- 2026-02-25 (Developer follow-up, Gate PASS): Added 3-bar default-rate comparison chart and 2/3+1/3 layout; rewrote tooltips with formatted business-friendly explanations.
+- 2026-02-25 (Build/Verify follow-up, Gate PASS): Re-ran `python -m pytest tests/test_evaluate_model.py -q` and `python -m pytest -q`; both passed.
 
 # Final Summary
 - First section now renders as two horizontal chart cards (gain and cumulative success rate), each with a tooltip button replacing the former right-side narrative panel.
@@ -82,3 +86,10 @@
 - Campaign expected-success calculations now use predicted `score` sums (not target outcomes) for campaign filtered metrics.
 - Slider controls in the top section update both top and campaign filtered charts.
 - Validation evidence: `python -m pytest -q` passed (6 passed).
+- Follow-up applied:
+  - Campaign distribution row now uses `2/3 + 1/3` split.
+  - Added 3-bar comparison chart for default success-rate scenarios:
+    1. whole base (default),
+    2. campaign clients (default),
+    3. top-N by score at same campaign volume.
+  - Tooltip content upgraded with formatted, business-facing guidance (`strong` + paragraph + bullets).
