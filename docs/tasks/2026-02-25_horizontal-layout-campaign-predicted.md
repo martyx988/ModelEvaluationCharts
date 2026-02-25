@@ -77,6 +77,11 @@
 - 2026-02-25 (QA tests-first follow-up, Gate PASS): Extended HTML assertions for `campaign-rate-compare-figure`, `tooltip-campaign-rate-compare`, and richer tooltip text marker.
 - 2026-02-25 (Developer follow-up, Gate PASS): Added 3-bar default-rate comparison chart and 2/3+1/3 layout; rewrote tooltips with formatted business-friendly explanations.
 - 2026-02-25 (Build/Verify follow-up, Gate PASS): Re-ran `python -m pytest tests/test_evaluate_model.py -q` and `python -m pytest -q`; both passed.
+- 2026-02-25 (Intake/QA follow-up 2, Gate PASS): Investigated reported bar-order issue and reproduced mismatch source: inconsistent metric definition in comparison chart.
+- 2026-02-25 (Developer follow-up 2, Gate PASS): Standardized all 3 comparison bars to expected-success-rate = mean predicted score on the compared set.
+- 2026-02-25 (Developer follow-up 2, Gate PASS): Updated simulation to calibrate score mass to target event volume and bias campaign client sampling toward higher-score clients.
+- 2026-02-25 (QA follow-up 2, Gate PASS): Added tests for score-mass vs target-volume alignment and expected ordering `whole <= campaign <= top`.
+- 2026-02-25 (Build/Verify follow-up 2, Gate PASS): Re-ran full test suite; all tests passed (`8 passed`).
 
 # Final Summary
 - First section now renders as two horizontal chart cards (gain and cumulative success rate), each with a tooltip button replacing the former right-side narrative panel.
@@ -93,3 +98,6 @@
     2. campaign clients (default),
     3. top-N by score at same campaign volume.
   - Tooltip content upgraded with formatted, business-facing guidance (`strong` + paragraph + bullets).
+- Follow-up 2 applied:
+  - Fixed comparison-chart metric mismatch so all three bars use the same definition of default success rate.
+  - Simulated data now enforces expected-success mass consistency with target volume and produces campaign cohorts that are realistically higher quality than the base.

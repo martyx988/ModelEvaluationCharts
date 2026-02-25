@@ -106,6 +106,29 @@ def test_simulated_tables_include_latest_january_scores() -> None:
     assert fs_time.max() == pd.Timestamp("2026-01-31")
 
 
+def test_simulated_scores_mass_aligns_with_target_event_volume() -> None:
+    model_score, target_store, _ = create_simulated_tables(seed=42)
+    total_expected_successes = float(pd.to_numeric(model_score["score"], errors="coerce").sum())
+    total_events = len(target_store)
+    assert abs(total_expected_successes - total_events) < 20
+
+
+def test_simulated_campaign_expected_rate_ordering() -> None:
+    model_score, _, campaign_clients = create_simulated_tables(seed=42)
+    fs_time = pd.to_datetime(model_score["fs_time"])
+    latest = model_score.loc[fs_time == fs_time.max(), ["pt_unified_key", "score"]].copy()
+    latest["score"] = pd.to_numeric(latest["score"], errors="coerce").clip(0.0, 1.0)
+    whole_rate = float(latest["score"].mean() * 100.0)
+
+    selected = latest.loc[latest["pt_unified_key"].isin(set(campaign_clients["pt_unified_key"]))].copy()
+    campaign_rate = float(selected["score"].mean() * 100.0)
+
+    top_same_volume = latest.sort_values("score", ascending=False).head(len(selected)).copy()
+    top_rate = float(top_same_volume["score"].mean() * 100.0)
+
+    assert whole_rate <= campaign_rate <= top_rate
+
+
 def test_campaign_selection_report_displays_actual_and_historical_periods(tmp_path) -> None:
     model_score, _, _ = create_simulated_tables(seed=42)
     campaign_clients = model_score[["pt_unified_key"]].drop_duplicates().head(120).copy()

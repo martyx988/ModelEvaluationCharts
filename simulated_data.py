@@ -20,11 +20,15 @@ def create_simulated_tables(seed: int | None = 42) -> tuple[pd.DataFrame, pd.Dat
     # Base risk is time-stable at client level; each month adds calibration drift and noise.
     latent_risk = rng.beta(2.2, 7.0, size=client_ids.size)
     monthly_quality = [0.80, 0.84, 0.88, 0.92]
+    monthly_target_sizes = [900, 950, 1000, 1050]
     score_frames: list[pd.DataFrame] = []
     monthly_scores: dict[pd.Timestamp, np.ndarray] = {}
-    for fs_time, quality in zip(fs_times, monthly_quality):
+    for fs_time, quality, target_size in zip(fs_times, monthly_quality, monthly_target_sizes):
         month_noise = rng.normal(0.0, 0.07, size=client_ids.size)
-        scores = np.clip(quality * latent_risk + (1.0 - quality) * (1.0 - latent_risk) + month_noise, 0.0, 1.0)
+        raw_scores = np.clip(quality * latent_risk + (1.0 - quality) * (1.0 - latent_risk) + month_noise, 1e-6, 1.0)
+        # Calibrate score mass so expected successes (sum of probabilities) align with target event volume.
+        calibration = target_size / float(raw_scores.sum())
+        scores = np.clip(raw_scores * calibration, 1e-6, 1.0)
         percentiles = (
             pd.Series(scores)
             .rank(method="average", pct=True)
@@ -50,10 +54,9 @@ def create_simulated_tables(seed: int | None = 42) -> tuple[pd.DataFrame, pd.Dat
 
     # Create events for the month after each score snapshot; later snapshots have slightly sharper targeting.
     target_frames: list[pd.DataFrame] = []
-    monthly_target_sizes = [900, 950, 1000, 1050]
     for idx, fs_time in enumerate(fs_times):
         scores = monthly_scores[fs_time]
-        success_weights = np.power(np.clip(scores, 1e-6, 1.0), 2.2 + 0.2 * idx)
+        success_weights = np.power(np.clip(scores, 1e-6, 1.0), 1.8 + 0.2 * idx)
         success_prob = success_weights / success_weights.sum()
         target_ids = rng.choice(client_ids, size=monthly_target_sizes[idx], replace=False, p=success_prob)
         month_start = fs_time + pd.DateOffset(days=1)
@@ -73,7 +76,10 @@ def create_simulated_tables(seed: int | None = 42) -> tuple[pd.DataFrame, pd.Dat
         ["atsp_event_timestamp", "pt_unified_key"], ignore_index=True
     )
 
-    campaign_clients_ids = rng.choice(client_ids, size=7000, replace=False)
+    latest_scores = monthly_scores[fs_times[-1]]
+    campaign_weights = np.power(np.clip(latest_scores, 1e-6, 1.0), 1.4)
+    campaign_prob = campaign_weights / campaign_weights.sum()
+    campaign_clients_ids = rng.choice(client_ids, size=7000, replace=False, p=campaign_prob)
     campaign_clients = pd.DataFrame(
         {
             "pt_unified_key": campaign_clients_ids,

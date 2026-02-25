@@ -1169,21 +1169,14 @@ def EvaluateModel(
             latest_model_score=latest_model_score,
             campaign_scored=campaign_scored,
         )
-        all_base_estimated_metrics = _build_estimated_metrics_by_contact_percentile(
-            campaign_scored=latest_model_score[["pt_unified_key", "score", "percentile"]].copy()
-        )
-        whole_base_default_sr_pct = float(
-            all_base_estimated_metrics.loc[
-                all_base_estimated_metrics["contacted_percentile"] == selected_percentile,
-                "cumulative_success_rate_pct",
-            ].iloc[0]
-        )
-        campaign_default_sr_pct = float(
-            campaign_metrics.loc[
-                campaign_metrics["contacted_percentile"] == selected_percentile,
-                "cumulative_success_rate_pct",
-            ].iloc[0]
-        )
+        whole_base_scores = pd.to_numeric(latest_model_score["score"], errors="coerce").clip(lower=0.0, upper=1.0)
+        if whole_base_scores.isna().any():
+            raise ValueError("latest_model_score.score contains non-numeric values.")
+        campaign_scores = pd.to_numeric(campaign_scored["score"], errors="coerce").clip(lower=0.0, upper=1.0)
+        if campaign_scores.isna().any():
+            raise ValueError("campaign_scored.score contains non-numeric values.")
+        whole_base_default_sr_pct = float(whole_base_scores.mean() * 100.0)
+        campaign_default_sr_pct = float(campaign_scores.mean() * 100.0)
         top_equal_volume = (
             latest_model_score[["pt_unified_key", "score"]]
             .copy()
