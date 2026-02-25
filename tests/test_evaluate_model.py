@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pandas as pd
 
-from evaluate_model import _build_metrics_by_contact_percentile, _make_figure
+from evaluate_model import EvaluateModel, _build_metrics_by_contact_percentile, _make_figure
 
 
 def _performance_fixture() -> pd.DataFrame:
@@ -51,3 +51,11 @@ def test_figure_has_presentation_trace_set_and_cutoff_markers() -> None:
     shapes = layout_dict.get("shapes", [])
     assert any(shape.get("name") == "selected_cutoff" for shape in shapes)
     assert any(shape.get("name") == "ks_optimal_split" for shape in shapes)
+
+
+def test_generated_report_contains_interactive_cutoff_control(tmp_path) -> None:
+    output = tmp_path / "report.html"
+    EvaluateModel(output_html_path=output, seed=42)
+    html = output.read_text(encoding="utf-8")
+    assert 'id="cutoff-slider"' in html
+    assert "Plotly.relayout" in html

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import numpy as np
@@ -330,11 +331,23 @@ def EvaluateModel(
     metrics = _build_metrics_by_contact_percentile(performance=performance)
     figure = _make_figure(metrics=metrics, default_percentile=selected_percentile)
     summary = _build_cutoff_summary(metrics=metrics, selected_percentile=selected_percentile)
+    cutoff_points = [
+        {
+            "p": int(row["contacted_percentile"]),
+            "clients": int(row["cum_clients"]),
+            "gain": float(row["gain_pct"]),
+            "sr": float(row["cumulative_success_rate_pct"]),
+            "captured": int(row["cum_successes"]),
+            "total": int(row["total_successes"]),
+        }
+        for _, row in metrics.iterrows()
+    ]
+    best_ks_percentile = int(metrics["best_ks_percentile"].iat[0])
 
     output_path = Path(output_html_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    fig_html = figure.to_html(full_html=False, include_plotlyjs=True)
+    fig_html = figure.to_html(full_html=False, include_plotlyjs=True, div_id="model-figure")
     html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -428,6 +441,31 @@ def EvaluateModel(
       border-top: 1px solid var(--line-soft);
       padding-top: 10px;
     }}
+    .controls {{
+      margin: 10px 0 12px 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }}
+    .controls label {{
+      font-size: 13px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }}
+    #cutoff-slider {{
+      width: min(460px, 90vw);
+      accent-color: var(--accent);
+    }}
+    #cutoff-value {{
+      font-size: 13px;
+      color: var(--text-main);
+      font-weight: 700;
+      background: #EFF6FF;
+      border: 1px solid #BFDBFE;
+      border-radius: 999px;
+      padding: 2px 9px;
+    }}
     .accent {{
       color: var(--accent);
       font-weight: 600;
@@ -449,20 +487,25 @@ def EvaluateModel(
     <div class="kpis">
       <div class="kpi">
         <div class="kpi-label">Selected cutoff</div>
-        <div class="kpi-value">Top {summary["selected_percentile"]}% ({summary["contacted_clients"]:,})</div>
+        <div class="kpi-value" id="kpi-cutoff">Top {summary["selected_percentile"]}% ({summary["contacted_clients"]:,})</div>
       </div>
       <div class="kpi">
         <div class="kpi-label">Lift / Gain</div>
-        <div class="kpi-value">{summary["gain_pct"]:.1f}%</div>
+        <div class="kpi-value" id="kpi-gain">{summary["gain_pct"]:.1f}%</div>
       </div>
       <div class="kpi">
         <div class="kpi-label">Success rate @ cutoff</div>
-        <div class="kpi-value">{summary["success_rate_pct"]:.1f}%</div>
+        <div class="kpi-value" id="kpi-sr">{summary["success_rate_pct"]:.1f}%</div>
       </div>
       <div class="kpi">
         <div class="kpi-label">Captured successes</div>
-        <div class="kpi-value">{summary["captured_successes"]:,} / {summary["total_successes"]:,}</div>
+        <div class="kpi-value" id="kpi-captured">{summary["captured_successes"]:,} / {summary["total_successes"]:,}</div>
       </div>
+    </div>
+    <div class="controls">
+      <label for="cutoff-slider">Selected cutoff percentile</label>
+      <input id="cutoff-slider" type="range" min="1" max="100" step="1" value="{summary["selected_percentile"]}" />
+      <span id="cutoff-value">{summary["selected_percentile"]}%</span>
     </div>
     {fig_html}
     <div class="footnote">
@@ -471,6 +514,67 @@ def EvaluateModel(
       Success is defined as an observed event from scoring time through one calendar month.
     </div>
   </div>
+  <script>
+    const cutoffData = {json.dumps(cutoff_points)};
+    const bestKsPercentile = {best_ks_percentile};
+
+    function formatInt(x) {{
+      return Number(x).toLocaleString("en-US");
+    }}
+
+    function pointFor(p) {{
+      return cutoffData[p - 1];
+    }}
+
+    function updateKpis(point) {{
+      document.getElementById("kpi-cutoff").textContent = `Top ${{point.p}}% (${{formatInt(point.clients)}})`;
+      document.getElementById("kpi-gain").textContent = `${{point.gain.toFixed(1)}}%`;
+      document.getElementById("kpi-sr").textContent = `${{point.sr.toFixed(1)}}%`;
+      document.getElementById("kpi-captured").textContent =
+        `${{formatInt(point.captured)}} / ${{formatInt(point.total)}}`;
+      document.getElementById("cutoff-value").textContent = `${{point.p}}%`;
+    }}
+
+    function updateFigure(point) {{
+      const gd = document.getElementById("model-figure");
+      if (!gd || !gd.layout || !gd.layout.annotations || gd.layout.annotations.length < 4) {{
+        return false;
+      }}
+      Plotly.relayout(gd, {{
+        "shapes[0].x0": point.p,
+        "shapes[0].x1": point.p,
+        "annotations[2].x": point.p,
+        "annotations[2].y": point.gain,
+        "annotations[2].text": `Top ${{point.p}}% -> SR ${{point.sr.toFixed(1)}}%, Gain ${{point.gain.toFixed(1)}}%`,
+        "annotations[3].x": bestKsPercentile
+      }});
+      return true;
+    }}
+
+    function applyCutoff(percentile) {{
+      const point = pointFor(percentile);
+      if (!point) {{
+        return;
+      }}
+      updateKpis(point);
+      updateFigure(point);
+    }}
+
+    const slider = document.getElementById("cutoff-slider");
+    slider.addEventListener("input", (event) => {{
+      applyCutoff(Number(event.target.value));
+    }});
+
+    let retries = 0;
+    const init = () => {{
+      const ok = updateFigure(pointFor(Number(slider.value)));
+      if (!ok && retries < 20) {{
+        retries += 1;
+        setTimeout(init, 100);
+      }}
+    }};
+    init();
+  </script>
 </body>
 </html>
 """

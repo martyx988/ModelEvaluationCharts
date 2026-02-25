@@ -287,3 +287,61 @@ Implement a presentation-ready redesign with external KPI cards, simplified gain
 
 ## Final Summary
 Slice 4 completed. The report now uses a presentation-ready layout with KPI cards above the charts, simplified gain-chart styling, one hero selected-cutoff marker, a secondary optimal-cutoff marker, and a cleaner overall visual hierarchy.
+
+---
+
+# Slice 5 - Interactive Cutoff Control (Presentation-Safe)
+
+## Task Contract
+
+### Goal
+Restore user-selectable cutoff interaction while keeping the presentation-style layout clean.
+
+### Acceptance Criteria
+- User can choose cutoff percentile interactively in the HTML report.
+- Cutoff interaction updates KPI cards and selected-cutoff chart marker/callout.
+- Optimal KS marker remains visible as a secondary static reference.
+- No reintroduction of in-chart slider clutter.
+
+### Non-Goals
+- Reintroducing the old Plotly slider control.
+
+### Assumptions / Open Questions
+- Assumption: best UX is an external header control (range input) driving Plotly relayout + KPI updates.
+
+## Strategic Plan
+- Add tests for presence of interactive cutoff UI in generated HTML.
+- Add lightweight JS controller bound to range input.
+- Keep figure static except relayout updates for selected-cutoff elements.
+
+## Tactical Plan
+- [x] Add/extend tests for interactive control markup in generated report.
+- [x] Add cutoff range control and value label in HTML.
+- [x] Add JS to update KPI cards and selected-cutoff shape/annotation.
+- [x] Run pytest and regenerate report.
+
+## Architecture Notes
+- Public API unchanged.
+- `EvaluateModel` embeds a cutoff data map (1..100) in HTML JS.
+- JS applies `Plotly.relayout` on `model-figure` to move selected-cutoff line/callout.
+
+## Test Plan
+
+### Automated tests (what/where)
+- `tests/test_evaluate_model.py`:
+  - assert generated HTML contains cutoff slider id and relayout script marker.
+
+### Manual verification script
+- Run: `python evaluate_model.py`
+- Open report and move cutoff slider.
+- Verify KPI cards and selected cutoff marker update accordingly.
+
+## Progress Log
+- 2026-02-25: Opened Slice 5 to restore user-selectable cutoff via external control panel.
+- 2026-02-25: Added report-level test asserting interactive cutoff markup and Plotly relayout hook.
+- 2026-02-25: Added header slider control for cutoff percentile with live value badge.
+- 2026-02-25: Embedded cutoff data map and JS controller to update KPI cards and selected-cutoff line/callout via `Plotly.relayout`.
+- 2026-02-25: Verified with `python -m pytest -q` (3 passed) and regenerated report via `python evaluate_model.py`.
+
+## Final Summary
+Slice 5 completed. Interactive cutoff selection is restored through a clean external control that updates KPI cards and chart cutoff annotation/line without reintroducing in-plot slider clutter.
