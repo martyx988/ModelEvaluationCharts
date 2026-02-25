@@ -119,6 +119,38 @@ def _build_metrics_by_contact_percentile(performance: pd.DataFrame) -> pd.DataFr
     ]
 
 
+def _format_period_label(start: pd.Timestamp, end: pd.Timestamp) -> str:
+    if start == end:
+        return start.strftime("%b %Y")
+    return f"{start.strftime('%b %Y')} - {end.strftime('%b %Y')}"
+
+
+def _resolve_historical_scores(
+    model_score: pd.DataFrame,
+    latest_fs_time: pd.Timestamp,
+    historical_period_start: str | pd.Timestamp | None,
+    historical_period_end: str | pd.Timestamp | None,
+) -> tuple[pd.DataFrame, str]:
+    scored = model_score.copy()
+    scored["fs_time"] = pd.to_datetime(scored["fs_time"], errors="coerce")
+    historical = scored.loc[scored["fs_time"] < latest_fs_time].copy()
+    if historical.empty:
+        raise ValueError("No historical scores are available before the newest actual model score date.")
+
+    start = pd.to_datetime(historical_period_start) if historical_period_start is not None else historical["fs_time"].min()
+    end = pd.to_datetime(historical_period_end) if historical_period_end is not None else historical["fs_time"].max()
+    if start > end:
+        raise ValueError("historical_period_start must be earlier than or equal to historical_period_end.")
+
+    historical = historical.loc[(historical["fs_time"] >= start) & (historical["fs_time"] <= end)].copy()
+    if historical.empty:
+        raise ValueError("Historical period filter returned no model scores. Adjust historical period boundaries.")
+
+    actual_start = historical["fs_time"].min()
+    actual_end = historical["fs_time"].max()
+    return historical, _format_period_label(actual_start, actual_end)
+
+
 def _required_cutoff_for_desired_rate(metrics: pd.DataFrame, desired_rate: float) -> int:
     eligible = metrics.loc[metrics["cumulative_success_rate_pct"] >= desired_rate, "contacted_percentile"]
     if eligible.empty:
@@ -423,52 +455,132 @@ def _build_campaign_selection_summary(
     }
 
 
-def _make_campaign_selection_figure(metrics: pd.DataFrame, summary: dict[str, float | int]) -> go.Figure:
+def _build_period_campaign_comparison(
+    model_score: pd.DataFrame,
+    target_store: pd.DataFrame,
+    campaign_clients: pd.DataFrame,
+) -> tuple[dict[str, float | int], pd.DataFrame]:
+    scored = model_score.copy()
+    scored["fs_time"] = pd.to_datetime(scored["fs_time"], errors="coerce")
+    summaries: list[dict[str, float | int]] = []
+    curves: list[pd.DataFrame] = []
+    for fs_time, snapshot in scored.groupby("fs_time", sort=True):
+        performance = _prepare_performance_data(model_score=snapshot, target_store=target_store)
+        metrics = _build_metrics_by_contact_percentile(performance=performance)
+        summaries.append(_build_campaign_selection_summary(performance=performance, metrics=metrics, campaign_clients=campaign_clients))
+        curves.append(
+            metrics[["contacted_percentile", "cumulative_success_rate_pct"]].assign(fs_time=fs_time)
+        )
+
+    if not summaries:
+        raise ValueError("No model snapshots found for campaign comparison.")
+
+    summary_df = pd.DataFrame(summaries)
+    avg_summary = {
+        "selected_clients": int(round(float(summary_df["selected_clients"].mean()))),
+        "selected_rate_pct": float(summary_df["selected_rate_pct"].mean()),
+        "selected_capture_pct": float(summary_df["selected_capture_pct"].mean()),
+        "model_top_rate_pct": float(summary_df["model_top_rate_pct"].mean()),
+        "model_top_capture_pct": float(summary_df["model_top_capture_pct"].mean()),
+        "overall_rate_pct": float(summary_df["overall_rate_pct"].mean()),
+        "volume_percentile": int(round(float(summary_df["volume_percentile"].mean()))),
+        "model_curve_rate_pct": float(summary_df["model_curve_rate_pct"].mean()),
+    }
+    curve = (
+        pd.concat(curves, ignore_index=True)
+        .groupby("contacted_percentile", as_index=False)["cumulative_success_rate_pct"]
+        .mean()
+        .sort_values("contacted_percentile", ignore_index=True)
+    )
+    return avg_summary, curve
+
+
+def _make_campaign_selection_figure(
+    actual_curve: pd.DataFrame,
+    actual_summary: dict[str, float | int],
+    actual_period_label: str,
+    historical_curve: pd.DataFrame,
+    historical_summary: dict[str, float | int],
+    historical_period_label: str,
+) -> go.Figure:
     fig = make_subplots(
         rows=2,
         cols=1,
         shared_xaxes=False,
         vertical_spacing=0.18,
-        subplot_titles=("Selection Success Rate Benchmark", "Cumulative Success Rate Context"),
+        subplot_titles=(
+            "Selection Success Rate Benchmark (Actual vs Historical)",
+            "Cumulative Success Rate Context by Score Period",
+        ),
     )
 
     benchmark_labels = ["Your Selection", "Model-guided at same volume", "Portfolio average"]
-    benchmark_values = [
-        float(summary["selected_rate_pct"]),
-        float(summary["model_top_rate_pct"]),
-        float(summary["overall_rate_pct"]),
+    benchmark_actual = [
+        float(actual_summary["selected_rate_pct"]),
+        float(actual_summary["model_top_rate_pct"]),
+        float(actual_summary["overall_rate_pct"]),
+    ]
+    benchmark_historical = [
+        float(historical_summary["selected_rate_pct"]),
+        float(historical_summary["model_top_rate_pct"]),
+        float(historical_summary["overall_rate_pct"]),
     ]
     fig.add_trace(
         go.Bar(
             x=benchmark_labels,
-            y=benchmark_values,
-            marker={"color": ["#2563EB", "#0EA5E9", "#94A3B8"]},
-            text=[f"{v:.1f}%" for v in benchmark_values],
+            y=benchmark_actual,
+            name=f"Actual ({actual_period_label})",
+            marker={"color": "#2563EB"},
+            text=[f"{v:.1f}%" for v in benchmark_actual],
             textposition="outside",
             hovertemplate="%{x}<br>Success rate: %{y:.2f}%<extra></extra>",
-            showlegend=False,
+        ),
+        row=1,
+        col=1,
+    )
+    fig.add_trace(
+        go.Bar(
+            x=benchmark_labels,
+            y=benchmark_historical,
+            name=f"Historical ({historical_period_label})",
+            marker={"color": "#94A3B8"},
+            text=[f"{v:.1f}%" for v in benchmark_historical],
+            textposition="outside",
+            hovertemplate="%{x}<br>Success rate: %{y:.2f}%<extra></extra>",
         ),
         row=1,
         col=1,
     )
 
-    x = metrics["contacted_percentile"]
     fig.add_trace(
         go.Scatter(
-            x=x,
-            y=metrics["cumulative_success_rate_pct"],
+            x=actual_curve["contacted_percentile"],
+            y=actual_curve["cumulative_success_rate_pct"],
             mode="lines",
             line={"color": "#1D4ED8", "width": 2.5},
-            name="Model cumulative SR",
+            name=f"Actual curve ({actual_period_label})",
+            hovertemplate="Percentile: %{x}%<br>Cumulative SR: %{y:.2f}%<extra></extra>",
+        ),
+        row=2,
+        col=1,
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=historical_curve["contacted_percentile"],
+            y=historical_curve["cumulative_success_rate_pct"],
+            mode="lines",
+            line={"color": "#64748B", "width": 2.0, "dash": "dash"},
+            name=f"Historical curve ({historical_period_label})",
             hovertemplate="Percentile: %{x}%<br>Cumulative SR: %{y:.2f}%<extra></extra>",
         ),
         row=2,
         col=1,
     )
 
-    vol = int(summary["volume_percentile"])
-    sel_rate = float(summary["selected_rate_pct"])
+    vol = int(actual_summary["volume_percentile"])
+    sel_rate = float(actual_summary["selected_rate_pct"])
     fig.update_layout(
+        barmode="group",
         shapes=[
             dict(
                 type="line",
@@ -497,7 +609,7 @@ def _make_campaign_selection_figure(metrics: pd.DataFrame, summary: dict[str, fl
                 y=sel_rate,
                 xref="x2",
                 yref="y2",
-                text=f"Your selection rate: {sel_rate:.1f}% @ ~{vol}%",
+                text=f"Actual selection rate: {sel_rate:.1f}% @ ~{vol}% ({actual_period_label})",
                 showarrow=True,
                 arrowhead=2,
                 ax=24,
@@ -526,9 +638,17 @@ def EvaluateModel(
     seed: int | None = 42,
     include_campaign_selection: bool = False,
     campaign_clients: pd.DataFrame | None = None,
+    historical_period_start: str | pd.Timestamp | None = None,
+    historical_period_end: str | pd.Timestamp | None = None,
 ) -> Path:
     model_score, target_store, _ = create_simulated_tables(seed=seed)
-    performance = _prepare_performance_data(model_score=model_score, target_store=target_store)
+    model_score = model_score.copy()
+    model_score["fs_time"] = pd.to_datetime(model_score["fs_time"], errors="coerce")
+    if model_score["fs_time"].isna().any():
+        raise ValueError("model_score.fs_time contains invalid datetime values.")
+    latest_fs_time = model_score["fs_time"].max()
+    latest_model_score = model_score.loc[model_score["fs_time"] == latest_fs_time].copy()
+    performance = _prepare_performance_data(model_score=latest_model_score, target_store=target_store)
     metrics = _build_metrics_by_contact_percentile(performance=performance)
     selected_percentile = int(metrics["best_ks_percentile"].iat[0])
     desired_success_rate = float(
@@ -562,23 +682,44 @@ def EvaluateModel(
     if include_campaign_selection:
         if campaign_clients is None:
             raise ValueError("campaign_clients must be provided when include_campaign_selection=True.")
-        campaign_summary = _build_campaign_selection_summary(
-            performance=performance,
-            metrics=metrics,
+        actual_summary, actual_curve = _build_period_campaign_comparison(
+            model_score=latest_model_score,
+            target_store=target_store,
             campaign_clients=campaign_clients,
         )
-        campaign_fig = _make_campaign_selection_figure(metrics=metrics, summary=campaign_summary)
+        historical_scores, historical_period_label = _resolve_historical_scores(
+            model_score=model_score,
+            latest_fs_time=latest_fs_time,
+            historical_period_start=historical_period_start,
+            historical_period_end=historical_period_end,
+        )
+        historical_summary, historical_curve = _build_period_campaign_comparison(
+            model_score=historical_scores,
+            target_store=target_store,
+            campaign_clients=campaign_clients,
+        )
+        actual_period_label = _format_period_label(latest_fs_time, latest_fs_time)
+        campaign_fig = _make_campaign_selection_figure(
+            actual_curve=actual_curve,
+            actual_summary=actual_summary,
+            actual_period_label=actual_period_label,
+            historical_curve=historical_curve,
+            historical_summary=historical_summary,
+            historical_period_label=historical_period_label,
+        )
         campaign_fig_html = campaign_fig.to_html(full_html=False, include_plotlyjs=False, div_id="campaign-figure")
         campaign_section_html = f"""
     <section class="campaign-section">
       <h2>Campaign Selection Potential</h2>
       <p>
-        This section benchmarks your selected client list against model-guided targeting at the same campaign size.
+        This section benchmarks your selected client list against model-guided targeting at the same campaign size
+        using newest actual model scores and a historical score period.
       </p>
+      <p><strong>Actual period:</strong> {actual_period_label} | <strong>Historical period:</strong> {historical_period_label}</p>
       <div class="campaign-kpis">
-        <div class="campaign-kpi"><strong>Your selection SR</strong><span>{campaign_summary["selected_rate_pct"]:.1f}%</span></div>
-        <div class="campaign-kpi"><strong>Model-guided at same volume</strong><span>{campaign_summary["model_top_rate_pct"]:.1f}%</span></div>
-        <div class="campaign-kpi"><strong>Portfolio average</strong><span>{campaign_summary["overall_rate_pct"]:.1f}%</span></div>
+        <div class="campaign-kpi"><strong>Your selection SR (actual)</strong><span>{actual_summary["selected_rate_pct"]:.1f}%</span></div>
+        <div class="campaign-kpi"><strong>Your selection SR (historical)</strong><span>{historical_summary["selected_rate_pct"]:.1f}%</span></div>
+        <div class="campaign-kpi"><strong>Model-guided at same volume (actual)</strong><span>{actual_summary["model_top_rate_pct"]:.1f}%</span></div>
       </div>
       {campaign_fig_html}
     </section>

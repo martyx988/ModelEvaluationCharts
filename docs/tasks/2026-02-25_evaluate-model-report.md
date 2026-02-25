@@ -656,3 +656,39 @@ Update the testing notebook to call `EvaluateModel` with campaign selection data
 ## Progress Log
 - 2026-02-25: Updated `notebooks/simulated_data_testing.ipynb` to use `campaign_clients` naming and call `EvaluateModel(..., include_campaign_selection=True, campaign_clients=campaign_clients)`.
 - 2026-02-25: Notebook now generates `model_evaluation_report_campaign_selection.html` alongside baseline output.
+
+---
+
+# Slice 13 - Actual (Latest) vs User-Period Historical Comparison
+
+## Task Contract
+
+### Goal
+Extend simulated scoring data to include monthly snapshots with January 2026 as newest actual scores, and compare campaign selected-client potential success rate on actual scores versus a user-defined historical scoring period.
+
+### Acceptance Criteria
+- Simulated `model_score` includes multiple `fs_time` snapshots and newest snapshot is January 2026.
+- Main report charts are computed from newest actual scores only.
+- In campaign-selection mode, selected-client success rate is computed on actual scores and compared to user-defined historical period.
+- Campaign comparison chart/section displays explicit actual/historical period labels.
+
+### Tactical Plan
+- [x] Add tests for monthly snapshots with latest January 2026.
+- [x] Add tests for historical period labels in campaign-selection report output.
+- [x] Update simulated data generator to produce monthly score snapshots.
+- [x] Add historical-period parameters and period filtering to `EvaluateModel`.
+- [x] Implement actual-vs-historical campaign comparison summaries and chart labels.
+- [x] Run pytest and regenerate report.
+
+## Progress Log
+- 2026-02-25: Opened Slice 13 for latest-vs-historical campaign comparison with user-defined historical window.
+- 2026-02-25: Added tests for multi-snapshot simulated scores and campaign report period labeling.
+- 2026-02-25: Updated `create_simulated_tables` to emit monthly score snapshots (Oct 2025 through Jan 2026), with Jan 2026 as newest actual scores.
+- 2026-02-25: Updated `EvaluateModel` baseline charts to compute from newest actual snapshot only.
+- 2026-02-25: Added historical-period parameters (`historical_period_start`, `historical_period_end`) and validated filtering logic.
+- 2026-02-25: Implemented campaign comparison charts for actual vs historical score periods, including explicit period labels in section and chart legends.
+- 2026-02-25: Updated notebook validation assertion for new multi-month target simulation behavior.
+- 2026-02-25: Verified with `python -m pytest -q` (6 passed) and `python evaluate_model.py`.
+
+## Final Summary
+Slice 13 completed. The report now treats January 2026 as newest actual model scores, computes baseline charts from that snapshot, and supports campaign selection comparison against a user-defined historical scoring period with explicit time-period labels in the comparison visuals.

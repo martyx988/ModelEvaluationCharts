@@ -10,65 +10,82 @@ def create_simulated_tables(seed: int | None = 42) -> tuple[pd.DataFrame, pd.Dat
     Returns
     -------
     tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]
-        model_score, target_store, situation
+        model_score, target_store, campaign_clients
     """
     rng = np.random.default_rng(seed)
 
     client_ids = np.arange(1, 10001)
+    fs_times = pd.to_datetime(["2025-10-31", "2025-11-30", "2025-12-31", "2026-01-31"])
 
-    # Realistic model score shape: many low-risk clients, fewer high-risk clients.
+    # Base risk is time-stable at client level; each month adds calibration drift and noise.
     latent_risk = rng.beta(2.2, 7.0, size=client_ids.size)
-    model_noise = rng.normal(0.0, 0.06, size=client_ids.size)
-    scores = np.clip(0.88 * latent_risk + 0.12 * (1.0 - latent_risk) + model_noise, 0.0, 1.0)
-    # Convert score ranks to integer percentiles in inclusive range 1..100.
-    percentiles = (
-        pd.Series(scores)
-        .rank(method="average", pct=True)
-        .mul(100)
-        .apply(np.ceil)
-        .clip(1, 100)
-        .astype(int)
-        .to_numpy()
+    monthly_quality = [0.80, 0.84, 0.88, 0.92]
+    score_frames: list[pd.DataFrame] = []
+    monthly_scores: dict[pd.Timestamp, np.ndarray] = {}
+    for fs_time, quality in zip(fs_times, monthly_quality):
+        month_noise = rng.normal(0.0, 0.07, size=client_ids.size)
+        scores = np.clip(quality * latent_risk + (1.0 - quality) * (1.0 - latent_risk) + month_noise, 0.0, 1.0)
+        percentiles = (
+            pd.Series(scores)
+            .rank(method="average", pct=True)
+            .mul(100)
+            .apply(np.ceil)
+            .clip(1, 100)
+            .astype(int)
+            .to_numpy()
+        )
+        score_frames.append(
+            pd.DataFrame(
+                {
+                    "pt_unified_key": client_ids,
+                    "fs_time": fs_time,
+                    "score": scores,
+                    "percentile": percentiles,
+                }
+            )
+        )
+        monthly_scores[fs_time] = scores
+
+    model_score = pd.concat(score_frames, ignore_index=True)
+
+    # Create events for the month after each score snapshot; later snapshots have slightly sharper targeting.
+    target_frames: list[pd.DataFrame] = []
+    monthly_target_sizes = [900, 950, 1000, 1050]
+    for idx, fs_time in enumerate(fs_times):
+        scores = monthly_scores[fs_time]
+        success_weights = np.power(np.clip(scores, 1e-6, 1.0), 2.2 + 0.2 * idx)
+        success_prob = success_weights / success_weights.sum()
+        target_ids = rng.choice(client_ids, size=monthly_target_sizes[idx], replace=False, p=success_prob)
+        month_start = fs_time + pd.DateOffset(days=1)
+        next_month_start = month_start + pd.DateOffset(months=1)
+        total_seconds = int((next_month_start - month_start).total_seconds())
+        random_seconds = rng.integers(0, total_seconds, size=target_ids.size)
+        target_frames.append(
+            pd.DataFrame(
+                {
+                    "pt_unified_key": target_ids,
+                    "atsp_event_timestamp": month_start + pd.to_timedelta(random_seconds, unit="s"),
+                }
+            )
+        )
+
+    target_store = pd.concat(target_frames, ignore_index=True).sort_values(
+        ["atsp_event_timestamp", "pt_unified_key"], ignore_index=True
     )
 
-    model_score = pd.DataFrame(
+    campaign_clients_ids = rng.choice(client_ids, size=7000, replace=False)
+    campaign_clients = pd.DataFrame(
         {
-            "pt_unified_key": client_ids,
-            "fs_time": "2026-01-31",
-            "score": scores,
-            "percentile": percentiles,
-        }
-    )
-
-    # Successes are more likely for higher scored clients.
-    success_weights = np.power(np.clip(scores, 1e-6, 1.0), 2.8)
-    success_prob = success_weights / success_weights.sum()
-    target_ids = rng.choice(client_ids, size=1000, replace=False, p=success_prob)
-    feb_start = pd.Timestamp("2026-02-01")
-    mar_start = pd.Timestamp("2026-03-01")
-    total_seconds = int((mar_start - feb_start).total_seconds())
-    random_seconds = rng.integers(0, total_seconds, size=target_ids.size)
-
-    target_store = pd.DataFrame(
-        {
-            "pt_unified_key": target_ids,
-            "atsp_event_timestamp": feb_start + pd.to_timedelta(random_seconds, unit="s"),
+            "pt_unified_key": campaign_clients_ids,
         }
     ).sort_values("pt_unified_key", ignore_index=True)
 
-    situation_ids = rng.choice(client_ids, size=7000, replace=False)
-    situation = pd.DataFrame(
-        {
-            "pt_unified_key": situation_ids,
-        }
-    ).sort_values("pt_unified_key", ignore_index=True)
-
-    return model_score, target_store, situation
+    return model_score, target_store, campaign_clients
 
 
 if __name__ == "__main__":
-    model_score_df, target_store_df, situation_df = create_simulated_tables()
+    model_score_df, target_store_df, campaign_clients_df = create_simulated_tables()
 
     print("model_score shape:", model_score_df.shape)
     print("target_store shape:", target_store_df.shape)
-    print("situation shape:", situation_df.shape)
+    print("campaign_clients shape:", campaign_clients_df.shape)
