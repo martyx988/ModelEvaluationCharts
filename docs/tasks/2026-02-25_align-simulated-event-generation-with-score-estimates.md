@@ -25,7 +25,10 @@ Find and fix why campaign-selection bottom charts diverge strongly from top char
 - [x] Add regression test for all-client top-vs-campaign curve alignment.
 - [x] Update simulator event sampling to match score-based expectation assumptions.
 - [x] Run pytest and confirm pass.
-- [x] Update this task file with progress and final summary.
+- [x] Add follow-up regression test for all-client KS-optimal cutoff parity.
+- [x] Implement all-client campaign metric parity for KS cutoff.
+- [x] Re-run pytest and confirm pass.
+- [x] Update this task file with follow-up summary.
 
 # Architecture Notes
 - Keep `EvaluateModel` API unchanged.
@@ -52,6 +55,10 @@ Find and fix why campaign-selection bottom charts diverge strongly from top char
 - 2026-02-25: Build/Verify passed. Targeted regression test passed; full suite passed (`13 passed`).
 - 2026-02-25: Post-fix check for all-client case: `max gain diff 2.065pp`, `max SR diff 2.227pp`.
 - 2026-02-25: Reviewer approved slice; no remaining blockers.
+- 2026-02-25: Follow-up reported by user: all-client scenario still shows different KS-optimal cutoff in bottom gain chart. New QA/Dev slice started.
+- 2026-02-25: QA added `test_all_client_campaign_ks_cutoff_matches_top_metrics`; red phase reproduced mismatch (`47` vs `58`).
+- 2026-02-25: Developer added `_campaign_covers_whole_base(...)` and `_resolve_campaign_metrics_for_report(...)`; report now reuses top actual metrics for campaign gain/success charts when campaign equals full latest base.
+- 2026-02-25: Build/Verify follow-up passed. Targeted tests passed (`2 passed`), full suite passed (`14 passed`).
 
 # Final Summary
 Root cause:
@@ -66,3 +73,7 @@ Evidence:
 - Before fix: max gain diff ~15.8pp, max cumulative SR diff ~19.0pp.
 - After fix: max gain diff ~2.1pp, max cumulative SR diff ~2.2pp.
 - Automated verification: `python -m pytest` passed (`13 passed`).
+
+Follow-up:
+- Added explicit all-client parity handling so campaign bottom gain/success charts share the same KS optimum as the top charts when `campaign_clients` covers the full latest scored base.
+- Follow-up verification: `python -m pytest` passed (`14 passed`).

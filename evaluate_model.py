@@ -758,6 +758,32 @@ def _build_estimated_metrics_by_contact_percentile(campaign_scored: pd.DataFrame
     ]
 
 
+def _campaign_covers_whole_base(latest_model_score: pd.DataFrame, campaign_scored: pd.DataFrame) -> bool:
+    required = {"pt_unified_key"}
+    missing_latest = required - set(latest_model_score.columns)
+    missing_campaign = required - set(campaign_scored.columns)
+    if missing_latest:
+        raise ValueError(f"latest_model_score is missing required columns: {sorted(missing_latest)}")
+    if missing_campaign:
+        raise ValueError(f"campaign_scored is missing required columns: {sorted(missing_campaign)}")
+
+    all_keys = set(latest_model_score["pt_unified_key"].dropna().astype(str))
+    campaign_keys = set(campaign_scored["pt_unified_key"].dropna().astype(str))
+    return all_keys == campaign_keys
+
+
+def _resolve_campaign_metrics_for_report(
+    latest_model_score: pd.DataFrame,
+    campaign_scored: pd.DataFrame,
+    actual_metrics: pd.DataFrame,
+    estimated_metrics: pd.DataFrame,
+) -> pd.DataFrame:
+    # If campaign selection is the full base, align bottom charts to top observed metrics.
+    if _campaign_covers_whole_base(latest_model_score=latest_model_score, campaign_scored=campaign_scored):
+        return actual_metrics.copy()
+    return estimated_metrics
+
+
 def _build_campaign_percentile_distribution(
     latest_model_score: pd.DataFrame,
     campaign_scored: pd.DataFrame,
@@ -1188,7 +1214,13 @@ def EvaluateModel(
             latest_model_score=latest_model_score,
             campaign_clients=campaign_clients,
         )
-        campaign_metrics = _build_estimated_metrics_by_contact_percentile(campaign_scored=campaign_scored)
+        campaign_estimated_metrics = _build_estimated_metrics_by_contact_percentile(campaign_scored=campaign_scored)
+        campaign_metrics = _resolve_campaign_metrics_for_report(
+            latest_model_score=latest_model_score,
+            campaign_scored=campaign_scored,
+            actual_metrics=metrics,
+            estimated_metrics=campaign_estimated_metrics,
+        )
         campaign_distribution = _build_campaign_percentile_distribution(
             latest_model_score=latest_model_score,
             campaign_scored=campaign_scored,

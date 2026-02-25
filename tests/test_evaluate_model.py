@@ -7,6 +7,7 @@ from evaluate_model import (
     EvaluateModel,
     _build_estimated_metrics_by_contact_percentile,
     _build_metrics_by_contact_percentile,
+    _resolve_campaign_metrics_for_report,
     _make_figure,
     _prepare_campaign_estimated_performance,
     _prepare_performance_data,
@@ -236,3 +237,28 @@ def test_all_client_campaign_curves_align_with_top_curves_for_simulated_data() -
     ).abs().max()
     assert max_gain_diff < 8.0
     assert max_sr_diff < 8.0
+
+
+def test_all_client_campaign_ks_cutoff_matches_top_metrics() -> None:
+    model_score, target_store, _ = create_simulated_tables(seed=42)
+    scored = model_score.copy()
+    scored["fs_time"] = pd.to_datetime(scored["fs_time"])
+    latest = scored.loc[scored["fs_time"] == scored["fs_time"].max()].copy()
+
+    top_performance = _prepare_performance_data(model_score=latest, target_store=target_store)
+    top_metrics = _build_metrics_by_contact_percentile(performance=top_performance)
+
+    all_clients = latest[["pt_unified_key"]].copy()
+    campaign_scored = _prepare_campaign_estimated_performance(
+        latest_model_score=latest,
+        campaign_clients=all_clients,
+    )
+    campaign_estimated_metrics = _build_estimated_metrics_by_contact_percentile(campaign_scored=campaign_scored)
+    campaign_metrics = _resolve_campaign_metrics_for_report(
+        latest_model_score=latest,
+        campaign_scored=campaign_scored,
+        actual_metrics=top_metrics,
+        estimated_metrics=campaign_estimated_metrics,
+    )
+
+    assert int(campaign_metrics["best_ks_percentile"].iat[0]) == int(top_metrics["best_ks_percentile"].iat[0])
