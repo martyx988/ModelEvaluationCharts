@@ -45,6 +45,8 @@ def test_figure_has_presentation_trace_set_and_cutoff_markers() -> None:
     assert "Success Rate" in trace_names
     assert "Cumulative Non-Success Share" not in trace_names
     assert "KS" not in trace_names
+    success_trace = next(trace for trace in figure.data if trace.name == "Success Rate")
+    assert success_trace.type == "bar"
 
     layout_dict = figure.to_plotly_json().get("layout", {})
     assert "sliders" not in layout_dict or not layout_dict["sliders"]
@@ -58,5 +60,7 @@ def test_generated_report_contains_interactive_cutoff_control(tmp_path) -> None:
     EvaluateModel(output_html_path=output, seed=42)
     html = output.read_text(encoding="utf-8")
     assert 'id="cutoff-slider"' in html
+    assert 'id="desired-rate-slider"' in html
+    assert 'id="required-cutoff-value"' in html
     assert "Plotly.relayout" in html
     assert "How to read these charts" in html

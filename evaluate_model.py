@@ -119,7 +119,40 @@ def _build_metrics_by_contact_percentile(performance: pd.DataFrame) -> pd.DataFr
     ]
 
 
-def _make_figure(metrics: pd.DataFrame, default_percentile: int = 20) -> go.Figure:
+def _required_cutoff_for_desired_rate(metrics: pd.DataFrame, desired_rate: float) -> int:
+    eligible = metrics.loc[metrics["cumulative_success_rate_pct"] >= desired_rate, "contacted_percentile"]
+    if eligible.empty:
+        return 1
+    return int(eligible.max())
+
+
+def _success_bar_colors(metrics: pd.DataFrame, desired_rate: float) -> list[str]:
+    sr = metrics["cumulative_success_rate_pct"].astype(float)
+    max_dist = max(
+        abs(float(sr.max()) - desired_rate),
+        abs(float(sr.min()) - desired_rate),
+        1e-9,
+    )
+    colors: list[str] = []
+    for value in sr:
+        dist = abs(float(value) - desired_rate) / max_dist
+        alpha = 0.32 + 0.56 * dist
+        if value >= desired_rate:
+            colors.append(f"rgba(5, 150, 105, {alpha:.3f})")
+        else:
+            colors.append(f"rgba(220, 38, 38, {alpha:.3f})")
+    return colors
+
+
+def _make_figure(
+    metrics: pd.DataFrame,
+    default_percentile: int = 20,
+    desired_success_rate: float | None = None,
+) -> go.Figure:
+    if desired_success_rate is None:
+        desired_success_rate = float(
+            metrics.loc[metrics["contacted_percentile"] == default_percentile, "cumulative_success_rate_pct"].iloc[0]
+        )
     fig = make_subplots(
         rows=2,
         cols=1,
@@ -132,6 +165,7 @@ def _make_figure(metrics: pd.DataFrame, default_percentile: int = 20) -> go.Figu
     selected_row = metrics.loc[metrics["contacted_percentile"] == default_percentile].iloc[0]
     selected_gain = float(selected_row["gain_pct"])
     selected_sr = float(selected_row["cumulative_success_rate_pct"])
+    required_cutoff = _required_cutoff_for_desired_rate(metrics=metrics, desired_rate=desired_success_rate)
     fig.add_trace(
         go.Scatter(
             x=x,
@@ -170,13 +204,14 @@ def _make_figure(metrics: pd.DataFrame, default_percentile: int = 20) -> go.Figu
         col=1,
     )
     fig.add_trace(
-        go.Scatter(
+        go.Bar(
             x=x,
             y=metrics["cumulative_success_rate_pct"],
-            mode="lines+markers",
             name="Success Rate",
-            line={"color": "#059669", "width": 3},
-            marker={"size": 4},
+            marker={
+                "color": _success_bar_colors(metrics=metrics, desired_rate=desired_success_rate),
+                "line": {"color": "rgba(15, 23, 42, 0.12)", "width": 0.6},
+            },
             hovertemplate="Contacted: %{x}%<br>Success rate: %{y:.2f}%<extra></extra>",
         ),
         row=2,
@@ -211,7 +246,7 @@ def _make_figure(metrics: pd.DataFrame, default_percentile: int = 20) -> go.Figu
         title_text="Success Rate (%)",
         row=2,
         col=1,
-        rangemode="tozero",
+        range=[0, max(5.0, float(metrics["cumulative_success_rate_pct"].max()) * 1.08)],
         showline=True,
         linewidth=1,
         linecolor="#94A3B8",
@@ -253,6 +288,19 @@ def _make_figure(metrics: pd.DataFrame, default_percentile: int = 20) -> go.Figu
             borderpad=4,
             font={"size": 11, "color": "#334155"},
         ),
+        dict(
+            x=required_cutoff,
+            y=max(5.0, float(metrics["cumulative_success_rate_pct"].max()) * 0.86),
+            xref="x2",
+            yref="y2",
+            text=f"Needed for target SR: {required_cutoff}%",
+            showarrow=False,
+            bgcolor="rgba(255,251,235,0.96)",
+            bordercolor="#D97706",
+            borderwidth=1,
+            borderpad=4,
+            font={"size": 11, "color": "#92400E"},
+        ),
     ]
     shapes = [
         dict(
@@ -277,6 +325,17 @@ def _make_figure(metrics: pd.DataFrame, default_percentile: int = 20) -> go.Figu
             y1=1.0,
             line={"color": "#94A3B8", "width": 1.4, "dash": "dash"},
         ),
+        dict(
+            type="line",
+            name="required_cutoff",
+            xref="x",
+            yref="paper",
+            x0=required_cutoff,
+            x1=required_cutoff,
+            y0=0.0,
+            y1=1.0,
+            line={"color": "#D97706", "width": 1.8, "dash": "dot"},
+        ),
     ]
 
     fig.update_layout(
@@ -288,7 +347,7 @@ def _make_figure(metrics: pd.DataFrame, default_percentile: int = 20) -> go.Figu
             "xanchor": "center",
             "font": {"size": 28, "color": "#0F172A", "family": "Segoe UI, Arial, sans-serif"},
         },
-        width=860,
+        width=680,
         height=940,
         margin={"l": 92, "r": 55, "t": 120, "b": 90},
         hovermode="x unified",
@@ -311,13 +370,17 @@ def _make_figure(metrics: pd.DataFrame, default_percentile: int = 20) -> go.Figu
 
 def _build_cutoff_summary(metrics: pd.DataFrame, selected_percentile: int) -> dict[str, float | int]:
     row = metrics.loc[metrics["contacted_percentile"] == selected_percentile].iloc[0]
+    captured_successes = int(row["cum_successes"])
+    total_successes = int(row["total_successes"])
+    captured_pct = (captured_successes / total_successes * 100.0) if total_successes > 0 else 0.0
     return {
         "selected_percentile": selected_percentile,
         "contacted_clients": int(row["cum_clients"]),
         "gain_pct": float(row["gain_pct"]),
         "success_rate_pct": float(row["cumulative_success_rate_pct"]),
-        "captured_successes": int(row["cum_successes"]),
-        "total_successes": int(row["total_successes"]),
+        "captured_successes": captured_successes,
+        "total_successes": total_successes,
+        "captured_pct": captured_pct,
     }
 
 
@@ -325,11 +388,19 @@ def EvaluateModel(
     output_html_path: str | Path = "outputs/model_evaluation_report.html",
     seed: int | None = 42,
 ) -> Path:
-    selected_percentile = 20
     model_score, target_store, _ = create_simulated_tables(seed=seed)
     performance = _prepare_performance_data(model_score=model_score, target_store=target_store)
     metrics = _build_metrics_by_contact_percentile(performance=performance)
-    figure = _make_figure(metrics=metrics, default_percentile=selected_percentile)
+    selected_percentile = int(metrics["best_ks_percentile"].iat[0])
+    desired_success_rate = float(
+        metrics.loc[metrics["contacted_percentile"] == selected_percentile, "cumulative_success_rate_pct"].iloc[0]
+    )
+    required_cutoff = _required_cutoff_for_desired_rate(metrics=metrics, desired_rate=desired_success_rate)
+    figure = _make_figure(
+        metrics=metrics,
+        default_percentile=selected_percentile,
+        desired_success_rate=desired_success_rate,
+    )
     summary = _build_cutoff_summary(metrics=metrics, selected_percentile=selected_percentile)
     cutoff_points = [
         {
@@ -339,6 +410,11 @@ def EvaluateModel(
             "sr": float(row["cumulative_success_rate_pct"]),
             "captured": int(row["cum_successes"]),
             "total": int(row["total_successes"]),
+            "captured_pct": (
+                float(row["cum_successes"]) / float(row["total_successes"]) * 100.0
+                if float(row["total_successes"]) > 0
+                else 0.0
+            ),
         }
         for _, row in metrics.iterrows()
     ]
@@ -382,9 +458,9 @@ def EvaluateModel(
     }}
     .content-grid {{
       display: grid;
-      grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+      grid-template-columns: minmax(0, 1.15fr) minmax(360px, 1fr);
       gap: 16px;
-      align-items: start;
+      align-items: stretch;
     }}
     .figure-panel {{
       min-width: 0;
@@ -394,11 +470,22 @@ def EvaluateModel(
       border-radius: 12px;
       background: #FAFCFF;
       padding: 14px 14px 12px 14px;
-      position: sticky;
-      top: 16px;
+      display: grid;
+      grid-template-rows: 1fr 1fr;
+      gap: 12px;
+      min-height: 940px;
+    }}
+    .guide-section {{
+      border: 1px solid #E6EEF8;
+      border-radius: 10px;
+      background: #FFFFFF;
+      padding: 12px 11px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
     }}
     .guide-panel h3 {{
-      margin: 0 0 10px 0;
+      margin: 0 0 8px 0;
       font-size: 16px;
       color: var(--text-main);
     }}
@@ -408,18 +495,12 @@ def EvaluateModel(
       color: var(--text-muted);
       line-height: 1.45;
     }}
-    .guide-point {{
-      margin: 0 0 10px 0;
-      padding: 8px 9px;
-      border-radius: 8px;
-      background: #FFFFFF;
-      border: 1px solid #E6EEF8;
-    }}
-    .guide-point strong {{
+    .guide-section strong {{
       color: var(--text-main);
-      display: block;
-      margin-bottom: 3px;
+      margin-top: 4px;
+      margin-bottom: 2px;
       font-size: 13px;
+      display: block;
     }}
     .header {{
       border-bottom: 1px solid var(--line-soft);
@@ -507,6 +588,19 @@ def EvaluateModel(
       border-radius: 999px;
       padding: 2px 9px;
     }}
+    #desired-rate-slider {{
+      width: min(300px, 80vw);
+      accent-color: #D97706;
+    }}
+    #desired-rate-value, #required-cutoff-value {{
+      font-size: 13px;
+      color: #7C2D12;
+      font-weight: 700;
+      background: #FFF7ED;
+      border: 1px solid #FDBA74;
+      border-radius: 999px;
+      padding: 2px 9px;
+    }}
     .accent {{
       color: var(--accent);
       font-weight: 600;
@@ -516,7 +610,8 @@ def EvaluateModel(
         grid-template-columns: 1fr;
       }}
       .guide-panel {{
-        position: static;
+        min-height: auto;
+        grid-template-rows: auto;
       }}
     }}
   </style>
@@ -548,13 +643,24 @@ def EvaluateModel(
       </div>
       <div class="kpi">
         <div class="kpi-label">Captured successes</div>
-        <div class="kpi-value" id="kpi-captured">{summary["captured_successes"]:,} / {summary["total_successes"]:,}</div>
+        <div class="kpi-value" id="kpi-captured">{summary["captured_successes"]:,} / {summary["total_successes"]:,} ({summary["captured_pct"]:.1f}%)</div>
       </div>
     </div>
     <div class="controls">
       <label for="cutoff-slider">Selected cutoff percentile</label>
       <input id="cutoff-slider" type="range" min="1" max="100" step="1" value="{summary["selected_percentile"]}" />
       <span id="cutoff-value">{summary["selected_percentile"]}%</span>
+      <label for="desired-rate-slider">Desired success rate</label>
+      <input
+        id="desired-rate-slider"
+        type="range"
+        min="{metrics['cumulative_success_rate_pct'].min():.1f}"
+        max="{metrics['cumulative_success_rate_pct'].max():.1f}"
+        step="0.1"
+        value="{desired_success_rate:.1f}"
+      />
+      <span id="desired-rate-value">{desired_success_rate:.1f}%</span>
+      <span id="required-cutoff-value">Required cutoff: {required_cutoff}%</span>
     </div>
     <div class="content-grid">
       <div class="figure-panel">
@@ -566,32 +672,47 @@ def EvaluateModel(
         </div>
       </div>
       <aside class="guide-panel">
-        <h3>How to read these charts</h3>
-        <p>
-          Use this view to choose a practical business cutoff: who to target, expected conversion quality,
-          and how many successes you can capture.
-        </p>
-        <div class="guide-point">
-          <strong>Top chart: Cumulative Gain</strong>
-          The blue line shows the share of all possible successes captured as you target more clients.
-          A steeper early rise means stronger model prioritization.
-        </div>
-        <div class="guide-point">
-          <strong>Bottom chart: Cumulative Success Rate</strong>
-          This indicates expected conversion quality among contacted clients at each cutoff.
-          Higher values support more efficient spend.
-        </div>
-        <div class="guide-point">
-          <strong>Cutoff lines</strong>
-          Red dotted line is your selected business cutoff. Gray dashed line is the statistically optimal
-          KS split and can be used as a benchmark when setting campaign policy.
-        </div>
+        <section class="guide-section">
+          <h3>How to read these charts: top chart</h3>
+          <p>
+            The gain chart answers: <span class="accent">"How much of all potential successes will we capture?"</span>
+            at each targeting depth.
+          </p>
+          <strong>Model vs baselines</strong>
+          <p>
+            Blue above gray means model ranking adds value over random outreach. Earlier separation means
+            better prioritization.
+          </p>
+          <strong>Business decision</strong>
+          <p>
+            Use the selected cutoff line to balance campaign size vs captured success share.
+          </p>
+        </section>
+        <section class="guide-section">
+          <h3>How to read the bottom chart</h3>
+          <p>
+            Bars show cumulative success rate by cutoff depth. This indicates expected conversion quality
+            in the contacted population.
+          </p>
+          <strong>Desired success rate control</strong>
+          <p>
+            Set a target rate and use the reported required cutoff to choose the largest audience
+            that still meets your quality target.
+          </p>
+          <strong>Bar colors</strong>
+          <p>
+            Green bars are at/above target, red bars below target. Stronger shading means further distance
+            from your selected threshold.
+          </p>
+        </section>
       </aside>
     </div>
   </div>
   <script>
     const cutoffData = {json.dumps(cutoff_points)};
     const bestKsPercentile = {best_ks_percentile};
+    const desiredRateMin = {metrics['cumulative_success_rate_pct'].min():.4f};
+    const desiredRateMax = {metrics['cumulative_success_rate_pct'].max():.4f};
 
     function formatInt(x) {{
       return Number(x).toLocaleString("en-US");
@@ -606,13 +727,55 @@ def EvaluateModel(
       document.getElementById("kpi-gain").textContent = `${{point.gain.toFixed(1)}}%`;
       document.getElementById("kpi-sr").textContent = `${{point.sr.toFixed(1)}}%`;
       document.getElementById("kpi-captured").textContent =
-        `${{formatInt(point.captured)}} / ${{formatInt(point.total)}}`;
+        `${{formatInt(point.captured)}} / ${{formatInt(point.total)}} (${{point.captured_pct.toFixed(1)}}%)`;
       document.getElementById("cutoff-value").textContent = `${{point.p}}%`;
+    }}
+
+    function requiredCutoffForDesired(desiredRate) {{
+      let required = 1;
+      for (const point of cutoffData) {{
+        if (point.sr >= desiredRate) {{
+          required = point.p;
+        }}
+      }}
+      return required;
+    }}
+
+    function barColor(sr, desiredRate) {{
+      const maxDist = Math.max(Math.abs(desiredRateMax - desiredRate), Math.abs(desiredRateMin - desiredRate), 1e-9);
+      const dist = Math.abs(sr - desiredRate) / maxDist;
+      const alpha = 0.32 + 0.56 * dist;
+      if (sr >= desiredRate) {{
+        return `rgba(5,150,105,${{alpha.toFixed(3)}})`;
+      }}
+      return `rgba(220,38,38,${{alpha.toFixed(3)}})`;
+    }}
+
+    function updateDesiredRateUi(desiredRate) {{
+      const required = requiredCutoffForDesired(desiredRate);
+      document.getElementById("desired-rate-value").textContent = `${{desiredRate.toFixed(1)}}%`;
+      document.getElementById("required-cutoff-value").textContent = `Required cutoff: ${{required}}%`;
+
+      const gd = document.getElementById("model-figure");
+      if (!gd || !gd.layout || !gd.layout.annotations || gd.layout.annotations.length < 5) {{
+        return false;
+      }}
+      const colors = cutoffData.map((point) => barColor(point.sr, desiredRate));
+      Plotly.restyle(gd, {{
+        "marker.color": [colors]
+      }}, [3]);
+      Plotly.relayout(gd, {{
+        "shapes[2].x0": required,
+        "shapes[2].x1": required,
+        "annotations[4].x": required,
+        "annotations[4].text": `Needed for target SR: ${{required}}%`
+      }});
+      return true;
     }}
 
     function updateFigure(point) {{
       const gd = document.getElementById("model-figure");
-      if (!gd || !gd.layout || !gd.layout.annotations || gd.layout.annotations.length < 4) {{
+      if (!gd || !gd.layout || !gd.layout.annotations || gd.layout.annotations.length < 5) {{
         return false;
       }}
       Plotly.relayout(gd, {{
@@ -636,13 +799,17 @@ def EvaluateModel(
     }}
 
     const slider = document.getElementById("cutoff-slider");
+    const desiredRateSlider = document.getElementById("desired-rate-slider");
     slider.addEventListener("input", (event) => {{
       applyCutoff(Number(event.target.value));
+    }});
+    desiredRateSlider.addEventListener("input", (event) => {{
+      updateDesiredRateUi(Number(event.target.value));
     }});
 
     let retries = 0;
     const init = () => {{
-      const ok = updateFigure(pointFor(Number(slider.value)));
+      const ok = updateFigure(pointFor(Number(slider.value))) && updateDesiredRateUi(Number(desiredRateSlider.value));
       if (!ok && retries < 20) {{
         retries += 1;
         setTimeout(init, 100);

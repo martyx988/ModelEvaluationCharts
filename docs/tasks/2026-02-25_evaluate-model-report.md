@@ -402,3 +402,76 @@ Make charts visually thinner and add a business-facing interpretation panel to t
 
 ## Final Summary
 Slice 6 completed. Charts are narrower and paired with a right-side business-oriented reading guide, producing a clearer and more presentation-ready layout.
+
+---
+
+# Slice 7 - Dual Controls + Bar Success Chart + Matched Guide Panels
+
+## Task Contract
+
+### Goal
+Further reduce chart footprint, widen and split the explanation panel by chart row, default selected cutoff to KS optimum, add captured-success percentage, and convert cumulative success plot to an interactive threshold-colored bar chart with desired-success-rate control.
+
+### Acceptance Criteria
+- Selected cutoff defaults to KS-optimal percentile.
+- Captured successes KPI includes both count and percentage.
+- Bottom chart is a bar chart (not line) and remains interactive.
+- Add desired-success-rate control that returns required cutoff percentile.
+- Bottom bars are colored by desired-success-rate threshold, with intensity varying by distance to threshold.
+- Right-side explanatory panel is wider, split into top/bottom sections aligned with chart rows.
+- Charts are narrower than current layout.
+
+### Non-Goals
+- Changing event/success calculation logic.
+
+### Assumptions / Open Questions
+- Assumption: "required cutoff for desired success rate" means the largest cutoff percentile where cumulative success rate is still at or above desired target.
+
+## Strategic Plan
+- Add tests for new controls and bar chart output.
+- Update figure traces/layout and JS interactivity for dual controls.
+- Update side guidance layout to row-aligned top/bottom explanation cards.
+
+## Tactical Plan
+- [x] Add/extend tests for desired-rate control and bar-chart rendering.
+- [x] Set default selected cutoff to KS optimum and include captured percentage in KPI.
+- [x] Convert success-rate subplot to bars and add threshold-driven color shading.
+- [x] Add desired-success-rate control and computed required-cutoff output.
+- [x] Split/widen right-side guide into top/bottom chart-specific sections.
+- [x] Run pytest and regenerate report.
+
+## Architecture Notes
+- Public API unchanged.
+- HTML/JS includes two controls:
+  - selected cutoff percentile
+  - desired success rate
+- JS updates:
+  - selected cutoff KPI + marker/callout
+  - required cutoff output for desired rate
+  - success-rate bar colors by distance from desired threshold.
+
+## Test Plan
+
+### Automated tests (what/where)
+- `tests/test_evaluate_model.py`:
+  - assert desired-rate slider/control exists in generated HTML
+  - assert success-rate trace type is bar
+  - assert report contains required-cutoff output hook.
+
+### Manual verification script
+- Run: `python evaluate_model.py`
+- Open report:
+  - move selected cutoff slider and confirm marker + KPI update
+  - move desired success rate slider and confirm required cutoff + bar recoloring update.
+
+## Progress Log
+- 2026-02-25: Opened Slice 7 for dual-control business interactivity and bar-chart redesign.
+- 2026-02-25: Added tests to assert desired-rate control markup and bar-type success trace.
+- 2026-02-25: Set default selected cutoff to KS optimum and added captured-success percentage to KPI output.
+- 2026-02-25: Converted cumulative success subplot to bar chart with threshold-relative shading.
+- 2026-02-25: Added desired success-rate slider with live required-cutoff computation and marker update.
+- 2026-02-25: Narrowed figure further and widened/split right-side explanation into top and bottom chart sections.
+- 2026-02-25: Verified with `python -m pytest -q` (3 passed) and regenerated report.
+
+## Final Summary
+Slice 7 completed. The report now defaults to KS-optimal cutoff, includes dual interactive controls (selected cutoff + desired success rate), uses a threshold-shaded success-rate bar chart with required-cutoff feedback, and presents a tighter chart area with wider split business guidance aligned to top and bottom charts.
