@@ -3,6 +3,7 @@ from __future__ import annotations
 import pandas as pd
 
 from evaluate_model import EvaluateModel, _build_metrics_by_contact_percentile, _make_figure
+from evaluate_model_msp import EvaluateModel_msp
 from simulated_data import create_simulated_tables
 
 
@@ -108,3 +109,11 @@ def test_campaign_selection_report_displays_portfolio_baseline_period(tmp_path) 
     )
     html = output.read_text(encoding="utf-8")
     assert "Portfolio baseline period:" in html
+
+
+
+def test_msp_module_generates_report_file(tmp_path) -> None:
+    output_path = EvaluateModel_msp(output_html_path=tmp_path / "report_msp.html")
+    assert output_path.exists()
+    html = output_path.read_text(encoding="utf-8")
+    assert "Model Evaluation Report" in html

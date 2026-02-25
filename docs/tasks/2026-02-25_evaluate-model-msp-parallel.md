@@ -24,9 +24,10 @@
 - [x] Doplnit JS synchronizaci sliderů pro všechny nové grafy.
 - [x] Upravit/rozšířit testy pro nové MSP chování.
 - [x] Spustit testy a vygenerovat screenshot reportu.
+- [x] Přesunout MSP implementaci do samostatného `evaluate_model_msp.py` a notebook napojit na nový modul.
 
 # Architecture Notes
-- `EvaluateModel_msp` je samostatný report renderer (nepost-process wrapper), ale používá existující datové utility (`_prepare_performance_data`, `_build_metrics_by_contact_percentile`, `_required_cutoff_for_desired_rate`, `_build_cutoff_summary`).
+- `EvaluateModel_msp` je samostatný report renderer v odděleném souboru `evaluate_model_msp.py`, aby se MSP vývoj nemíchal s původním `evaluate_model.py`.
 - Campaign expected metriky jsou počítány nad `latest_model_score` omezeným na klíče z `campaign_clients`.
 - Interaktivita: jeden pár sliderů řídí cutoff ve všech MSP grafech přes JS `Plotly.relayout`.
 
@@ -45,8 +46,10 @@
 - 2026-02-25: Slidery napojeny i na nové campaign grafy.
 - 2026-02-25: Upraveny testy, všechny testy zelené.
 - 2026-02-25: Vygenerován screenshot nové MSP UI.
+- 2026-02-25: MSP implementace přesunuta do samostatného `evaluate_model_msp.py`; `testing_msp.ipynb` importuje nový modul.
 
 # Final Summary
 - MSP report nyní odpovídá cílovému wireframu (2 horní grafy vedle sebe + 3 campaign grafy pod nimi).
+- MSP kód je oddělen od původního reportu v samostatném python souboru.
 - Campaign grafy používají jen campaign subset a expected outcomes dle score.
 - Top slidery ovládají všechny grafy konzistentně.
