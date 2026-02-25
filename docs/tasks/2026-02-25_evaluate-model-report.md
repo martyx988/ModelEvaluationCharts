@@ -737,3 +737,21 @@ Run the full testing notebook, detect execution errors, and fix failing cells so
 - 2026-02-25: Executed `notebooks/simulated_data_testing.ipynb` with nbconvert and found failing assertion expecting events only in Feb 2026.
 - 2026-02-25: Updated assertion to valid multi-month event range (`2025-11-01` to `2026-02-28 23:59:59`).
 - 2026-02-25: Re-executed notebook successfully and confirmed test suite remains green (`6 passed`).
+
+---
+
+# Slice 16 - Notebook Validation Hardening
+
+## Task Contract
+
+### Goal
+Ensure notebook validation cell reflects current simulation design and executes cleanly without legacy assumptions.
+
+### Tactical Plan
+- [x] Make notebook validation block explicitly aligned to multi-month simulation behavior.
+- [x] Re-execute notebook end-to-end.
+- [x] Re-run pytest regression suite.
+
+## Progress Log
+- 2026-02-25: Added clarifying comment in notebook validation cell and retained corrected assertions (`>= 1000` unique targets, multi-month timestamp range).
+- 2026-02-25: Verified notebook execution via nbconvert and confirmed tests still pass (`6 passed`).
