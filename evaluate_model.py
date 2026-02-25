@@ -177,6 +177,58 @@ def _resolve_historical_period_input(
     return resolved
 
 
+def _resolve_report_language(language: str) -> dict[str, str]:
+    translations: dict[str, dict[str, str]] = {
+        "en": {
+            "html_lang": "en",
+            "report_title": "Model Evaluation Report",
+            "header_title": "Model Performance Evaluation",
+            "header_subtitle": "Cumulative gain and cumulative success rate with synchronized campaign scenario views.",
+            "kpi_selected_cutoff": "Selected cutoff",
+            "kpi_lift_gain": "Lift / Gain",
+            "kpi_success_rate": "Success rate @ cutoff",
+            "kpi_captured": "Captured successes",
+            "label_cutoff_slider": "Selected cutoff percentile",
+            "label_desired_rate_slider": "Desired success rate",
+            "required_cutoff_prefix": "Required cutoff",
+            "top_word": "Top",
+            "campaign_section_title": "Campaign Selection Potential",
+            "campaign_intro": "Expected successes are estimated from model score sums on the campaign filtered base.",
+            "campaign_distribution_title": "Campaign Client Distribution by Score Percentile",
+            "campaign_rate_compare_title": "Default Success Rate Comparison",
+            "campaign_gain_title": "Campaign Base Cumulative Gain",
+            "campaign_success_title": "Campaign Base Cumulative Success Rate",
+            "tooltip_how_to_read": "How to read this chart",
+            "number_locale": "en-US",
+        },
+        "cs": {
+            "html_lang": "cs",
+            "report_title": "Vyhodnoceni modelu",
+            "header_title": "Vyhodnoceni vykonnosti modelu",
+            "header_subtitle": "Kumulativni gain a kumulativni uspesnost se synchronizovanymi pohledy kampanoveho scenare.",
+            "kpi_selected_cutoff": "Vyberovy cut-off",
+            "kpi_lift_gain": "Lift / Gain",
+            "kpi_success_rate": "Uspesnost @ cut-off",
+            "kpi_captured": "Zachycene uspechy",
+            "label_cutoff_slider": "Vyberovy percentil cut-off",
+            "label_desired_rate_slider": "Pozadovana uspesnost",
+            "required_cutoff_prefix": "Pozadovany cut-off",
+            "top_word": "Top",
+            "campaign_section_title": "Potencial vyberu kampane",
+            "campaign_intro": "Ocekavane uspechy jsou odhadnuty ze souctu score v kampanove filtrovane bazi.",
+            "campaign_distribution_title": "Rozlozeni klientu kampane podle score percentilu",
+            "campaign_rate_compare_title": "Porovnani vychozi uspesnosti",
+            "campaign_gain_title": "Kumulativni gain kampanove baze",
+            "campaign_success_title": "Kumulativni uspesnost kampanove baze",
+            "tooltip_how_to_read": "Jak cist tento graf",
+            "number_locale": "cs-CZ",
+        },
+    }
+    if language not in translations:
+        raise ValueError("language must be one of: en, cs")
+    return translations[language]
+
+
 def _required_cutoff_for_desired_rate(metrics: pd.DataFrame, desired_rate: float) -> int:
     eligible = metrics.loc[metrics["cumulative_success_rate_pct"] >= desired_rate, "contacted_percentile"]
     if eligible.empty:
@@ -1165,12 +1217,14 @@ def EvaluateModel(
     historical_period: str | pd.Timestamp | None = None,
     historical_period_start: str | pd.Timestamp | None = None,
     historical_period_end: str | pd.Timestamp | None = None,
+    language: str = "en",
 ) -> Path:
     historical_period = _resolve_historical_period_input(
         historical_period=historical_period,
         historical_period_start=historical_period_start,
         historical_period_end=historical_period_end,
     )
+    labels = _resolve_report_language(language=language)
     model_score, target_store, _ = create_simulated_tables(seed=seed)
     model_score = model_score.copy()
     model_score["fs_time"] = pd.to_datetime(model_score["fs_time"], errors="coerce")
@@ -1300,18 +1354,18 @@ def EvaluateModel(
         campaign_best_ks_percentile = int(campaign_metrics["best_ks_percentile"].iat[0])
         campaign_section_html = f"""
     <section class="campaign-section">
-      <h2>Campaign Selection Potential</h2>
+      <h2>{labels["campaign_section_title"]}</h2>
       <p>
-        Expected successes are estimated from model score sums on the campaign filtered base.
+        {labels["campaign_intro"]}
       </p>
       <div class="campaign-top-row">
         <div class="plot-card" id="campaign-distribution-card">
           <div class="plot-card-head">
-            <h3>Campaign Client Distribution by Score Percentile</h3>
+            <h3>{labels["campaign_distribution_title"]}</h3>
             <div class="tooltip-wrap">
               <button class="tooltip-btn" type="button" aria-describedby="tooltip-campaign-distribution">?</button>
               <div class="tooltip-body" id="tooltip-campaign-distribution">
-                <strong>How to read this chart</strong>
+                <strong>{labels["tooltip_how_to_read"]}</strong>
                 <p>Each percentile bucket shows where campaign clients sit in the model ranking.</p>
                 <ul>
                   <li><strong>Gray bars:</strong> full scored population per percentile.</li>
@@ -1325,11 +1379,11 @@ def EvaluateModel(
         </div>
         <div class="plot-card" id="campaign-rate-compare-card">
           <div class="plot-card-head">
-            <h3>Default Success Rate Comparison</h3>
+            <h3>{labels["campaign_rate_compare_title"]}</h3>
             <div class="tooltip-wrap">
               <button class="tooltip-btn" type="button" aria-describedby="tooltip-campaign-rate-compare">?</button>
               <div class="tooltip-body" id="tooltip-campaign-rate-compare">
-                <strong>How to read this chart</strong>
+                <strong>{labels["tooltip_how_to_read"]}</strong>
                 <p>Bars compare expected success rate under three business scenarios.</p>
                 <ul>
                   <li><strong>Whole Base (Default):</strong> baseline expected quality at the default cutoff.</li>
@@ -1345,11 +1399,11 @@ def EvaluateModel(
       <div class="chart-grid chart-grid-2">
         <div class="plot-card" id="campaign-gain-card">
           <div class="plot-card-head">
-            <h3>Campaign Base Cumulative Gain</h3>
+            <h3>{labels["campaign_gain_title"]}</h3>
             <div class="tooltip-wrap">
               <button class="tooltip-btn" type="button" aria-describedby="tooltip-campaign-gain">?</button>
               <div class="tooltip-body" id="tooltip-campaign-gain">
-                <strong>How to read this chart</strong>
+                <strong>{labels["tooltip_how_to_read"]}</strong>
                 <p>Shows how much expected success volume is captured as contact depth increases.</p>
                 <ul>
                   <li>Blue model line above gray random baseline indicates ranking value.</li>
@@ -1362,11 +1416,11 @@ def EvaluateModel(
         </div>
         <div class="plot-card" id="campaign-success-card">
           <div class="plot-card-head">
-            <h3>Campaign Base Cumulative Success Rate</h3>
+            <h3>{labels["campaign_success_title"]}</h3>
             <div class="tooltip-wrap">
               <button class="tooltip-btn" type="button" aria-describedby="tooltip-campaign-success">?</button>
               <div class="tooltip-body" id="tooltip-campaign-success">
-                <strong>How to read this chart</strong>
+                <strong>{labels["tooltip_how_to_read"]}</strong>
                 <p>Bars show cumulative expected conversion quality inside the campaign-only base.</p>
                 <ul>
                   <li>Blue bars are within the cutoff required to hit desired success rate.</li>
@@ -1387,11 +1441,11 @@ def EvaluateModel(
     top_gain_html = gain_figure.to_html(full_html=False, include_plotlyjs=True, div_id="top-gain-figure")
     top_success_html = success_figure.to_html(full_html=False, include_plotlyjs=False, div_id="top-success-figure")
     html = f"""<!DOCTYPE html>
-<html lang="en">
+<html lang="{labels["html_lang"]}">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Model Evaluation Report</title>
+  <title>{labels["report_title"]}</title>
   <style>
     :root {{
       --bg-top: #F8FAFC;
@@ -1656,34 +1710,34 @@ def EvaluateModel(
 <body>
   <div class="wrap">
     <div class="header">
-      <h1>Model Performance Evaluation</h1>
+      <h1>{labels["header_title"]}</h1>
       <p>
-        Cumulative gain and cumulative success rate with synchronized campaign scenario views.
+        {labels["header_subtitle"]}
       </p>
     </div>
     <div class="kpis">
       <div class="kpi">
-        <div class="kpi-label">Selected cutoff</div>
-        <div class="kpi-value" id="kpi-cutoff">Top {summary["selected_percentile"]}% ({summary["contacted_clients"]:,})</div>
+        <div class="kpi-label">{labels["kpi_selected_cutoff"]}</div>
+        <div class="kpi-value" id="kpi-cutoff">{labels["top_word"]} {summary["selected_percentile"]}% ({summary["contacted_clients"]:,})</div>
       </div>
       <div class="kpi">
-        <div class="kpi-label">Lift / Gain</div>
+        <div class="kpi-label">{labels["kpi_lift_gain"]}</div>
         <div class="kpi-value" id="kpi-gain">{summary["gain_pct"]:.1f}%</div>
       </div>
       <div class="kpi">
-        <div class="kpi-label">Success rate @ cutoff</div>
+        <div class="kpi-label">{labels["kpi_success_rate"]}</div>
         <div class="kpi-value" id="kpi-sr">{summary["success_rate_pct"]:.1f}%</div>
       </div>
       <div class="kpi">
-        <div class="kpi-label">Captured successes</div>
+        <div class="kpi-label">{labels["kpi_captured"]}</div>
         <div class="kpi-value" id="kpi-captured">{summary["captured_successes"]:,} / {summary["total_successes"]:,} ({summary["captured_pct"]:.1f}%)</div>
       </div>
     </div>
     <div class="controls">
-      <label for="cutoff-slider">Selected cutoff percentile</label>
+      <label for="cutoff-slider">{labels["label_cutoff_slider"]}</label>
       <input id="cutoff-slider" type="range" min="1" max="100" step="1" value="{summary["selected_percentile"]}" />
       <span id="cutoff-value">{summary["selected_percentile"]}%</span>
-      <label for="desired-rate-slider">Desired success rate</label>
+      <label for="desired-rate-slider">{labels["label_desired_rate_slider"]}</label>
       <input
         id="desired-rate-slider"
         type="range"
@@ -1693,7 +1747,7 @@ def EvaluateModel(
         value="{desired_success_rate:.1f}"
       />
       <span id="desired-rate-value">{desired_success_rate:.1f}%</span>
-      <span id="required-cutoff-value">Required cutoff: {required_cutoff}%</span>
+      <span id="required-cutoff-value">{labels["required_cutoff_prefix"]}: {required_cutoff}%</span>
     </div>
     <div class="content-grid">
       <div class="chart-grid chart-grid-2">
@@ -1703,7 +1757,7 @@ def EvaluateModel(
             <div class="tooltip-wrap">
               <button class="tooltip-btn" type="button" aria-describedby="tooltip-top-gain">?</button>
               <div class="tooltip-body" id="tooltip-top-gain">
-                <strong>How to read this chart</strong>
+                <strong>{labels["tooltip_how_to_read"]}</strong>
                 <p>The gain chart answers how much of total potential you capture at each targeting depth.</p>
                 <ul>
                   <li><strong>Model vs Random:</strong> earlier blue-vs-gray separation means better prioritization.</li>
@@ -1721,7 +1775,7 @@ def EvaluateModel(
             <div class="tooltip-wrap">
               <button class="tooltip-btn" type="button" aria-describedby="tooltip-top-success">?</button>
               <div class="tooltip-body" id="tooltip-top-success">
-                <strong>How to read this chart</strong>
+                <strong>{labels["tooltip_how_to_read"]}</strong>
                 <p>This chart shows cumulative quality of the contacted population.</p>
                 <ul>
                   <li>Set a desired success rate target with the slider.</li>
@@ -1747,9 +1801,13 @@ def EvaluateModel(
     const campaignCutoffData = {json.dumps(campaign_cutoff_points)};
     const bestKsPercentile = {best_ks_percentile};
     const campaignBestKsPercentile = {campaign_best_ks_percentile};
+    const numberLocale = "{labels["number_locale"]}";
+    const labelTop = "{labels["top_word"]}";
+    const requiredCutoffPrefix = "{labels["required_cutoff_prefix"]}";
+    const neededForTargetPrefix = "{labels["required_cutoff_prefix"]}";
 
     function formatInt(x) {{
-      return Number(x).toLocaleString("en-US");
+      return Number(x).toLocaleString(numberLocale);
     }}
 
     function pointFor(p, points) {{
@@ -1757,7 +1815,7 @@ def EvaluateModel(
     }}
 
     function updateKpis(point) {{
-      document.getElementById("kpi-cutoff").textContent = `Top ${{point.p}}% (${{formatInt(point.clients)}})`;
+      document.getElementById("kpi-cutoff").textContent = `${{labelTop}} ${{point.p}}% (${{formatInt(point.clients)}})`;
       document.getElementById("kpi-gain").textContent = `${{point.gain.toFixed(1)}}%`;
       document.getElementById("kpi-sr").textContent = `${{point.sr.toFixed(1)}}%`;
       document.getElementById("kpi-captured").textContent =
@@ -1792,7 +1850,7 @@ def EvaluateModel(
         "shapes[0].x1": point.p,
         "annotations[0].x": point.p,
         "annotations[0].y": point.gain,
-        "annotations[0].text": `Top ${{point.p}}% -> SR ${{point.sr.toFixed(1)}}%, Gain ${{point.gain.toFixed(1)}}%`,
+        "annotations[0].text": `${{labelTop}} ${{point.p}}% -> SR ${{point.sr.toFixed(1)}}%, Gain ${{point.gain.toFixed(1)}}%`,
         "annotations[1].x": ksPercentile
       }});
       return true;
@@ -1816,7 +1874,7 @@ def EvaluateModel(
         "shapes[0].x0": required,
         "shapes[0].x1": required,
         "annotations[0].x": required,
-        "annotations[0].text": `Needed for target SR: ${{required}}%`
+        "annotations[0].text": `${{neededForTargetPrefix}}: ${{required}}%`
       }});
       return true;
     }}
@@ -1824,7 +1882,7 @@ def EvaluateModel(
     function updateDesiredRateUi(desiredRate, forcedRequired = null) {{
       const required = forcedRequired === null ? requiredCutoffForDesired(desiredRate, cutoffData) : forcedRequired;
       document.getElementById("desired-rate-value").textContent = `${{desiredRate.toFixed(1)}}%`;
-      document.getElementById("required-cutoff-value").textContent = `Required cutoff: ${{required}}%`;
+      document.getElementById("required-cutoff-value").textContent = `${{requiredCutoffPrefix}}: ${{required}}%`;
       const okTop = updateSuccessFigure("top-success-figure", cutoffData, required);
       const okCampaign = campaignCutoffData.length > 0
         ? updateSuccessFigure("campaign-success-figure", campaignCutoffData, required)

@@ -16,7 +16,6 @@ from evaluate_model import (
     _prepare_campaign_estimated_performance,
     _prepare_performance_data,
 )
-from evaluate_model_msp import EvaluateModel_msp
 from simulated_data import create_simulated_tables
 
 
@@ -311,3 +310,29 @@ def test_full_base_campaign_report_chart_values_remain_close(tmp_path) -> None:
 
     assert max_gain_diff <= 1.0
     assert max_sr_diff <= 1.0
+
+
+def test_generated_report_supports_czech_language_output(tmp_path) -> None:
+    model_score, _, _ = create_simulated_tables(seed=42)
+    campaign_clients = model_score[["pt_unified_key"]].drop_duplicates().head(200).copy()
+    output = tmp_path / "report_cs.html"
+    EvaluateModel(
+        output_html_path=output,
+        seed=42,
+        language="cs",
+        include_campaign_selection=True,
+        campaign_clients=campaign_clients,
+    )
+    html = output.read_text(encoding="utf-8")
+    assert '<html lang="cs">' in html
+    assert "Vyhodnoceni vykonnosti modelu" in html
+    assert "Vyberovy percentil cut-off" in html
+    assert "Porovnani vychozi uspesnosti" in html
+    assert 'const numberLocale = "cs-CZ"' in html
+    assert "toLocaleString(numberLocale)" in html
+
+
+def test_evaluatemodel_rejects_unsupported_language(tmp_path) -> None:
+    output = tmp_path / "report_bad_lang.html"
+    with pytest.raises(ValueError, match="language must be one of: en, cs"):
+        EvaluateModel(output_html_path=output, seed=42, language="de")

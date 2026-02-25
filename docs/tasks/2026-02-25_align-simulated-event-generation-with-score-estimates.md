@@ -35,6 +35,11 @@ Find and fix why campaign-selection bottom charts diverge strongly from top char
 - [x] Update task log/final summary for this UI tweak.
 - [x] Add regression test that validates full-base campaign chart values stay close to top chart values.
 - [x] Re-run pytest and confirm pass for regression guard.
+- [x] Add tests-first coverage for report language parameter (`en`/`cs`) and validation.
+- [x] Implement `EvaluateModel(language=...)` with Czech HTML text variants.
+- [x] Re-run pytest and confirm pass for localization slice.
+- [x] Remove MSP-dependent test artifacts after MSP module/notebook deletion.
+- [x] Re-run pytest and confirm pass after MSP cleanup.
 
 # Architecture Notes
 - Keep `EvaluateModel` API unchanged.
@@ -71,6 +76,11 @@ Find and fix why campaign-selection bottom charts diverge strongly from top char
 - 2026-02-25: Build/Verify UI tweak passed. Targeted test passed and full suite passed (`15 passed`).
 - 2026-02-25: Added report-level regression `test_full_base_campaign_report_chart_values_remain_close` to compare top and campaign chart payloads (`gain`, `sr`) when campaign uses full latest base.
 - 2026-02-25: Regression guard verification passed. Full suite now `16 passed`.
+- 2026-02-25: New follow-up requested: add report language parameter with `en`/`cs` and Czech HTML variant. Starting tests-first + implementation slice.
+- 2026-02-25: User confirmed MSP module and MSP notebook were intentionally deleted; requested cleanup of remaining MSP-dependent artifacts.
+- 2026-02-25: Removed MSP-dependent artifacts (`tests/test_testing_msp_notebook.py` and stale `evaluate_model_msp` import in tests).
+- 2026-02-25: Implemented `EvaluateModel(language="en"|"cs")` with language validation and Czech HTML labels.
+- 2026-02-25: Build/Verify passed after cleanup/localization: `python -m pytest` -> `17 passed`.
 
 # Final Summary
 Root cause:
@@ -98,3 +108,11 @@ Regression guard:
 - Added a full-base campaign regression test that parses report chart payloads and enforces closeness between top and campaign chart values.
 - Threshold selected: `<= 1.0` percentage point for both gain and cumulative success-rate series.
 - Verification after test addition: `python -m pytest` passed (`16 passed`).
+
+Localization (in progress):
+- Add `EvaluateModel(language="en"|"cs")` and Czech HTML copy for report sections and UI labels.
+  - Completed.
+
+MSP cleanup (in progress):
+- Remove tests/imports that still depend on deleted `evaluate_model_msp.py` and `notebooks/testing_msp.ipynb`.
+  - Completed.
