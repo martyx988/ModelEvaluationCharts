@@ -128,27 +128,29 @@ def _format_period_label(start: pd.Timestamp, end: pd.Timestamp) -> str:
 def _resolve_historical_scores(
     model_score: pd.DataFrame,
     latest_fs_time: pd.Timestamp,
-    historical_period_start: str | pd.Timestamp | None,
-    historical_period_end: str | pd.Timestamp | None,
+    historical_period: str | pd.Timestamp | None,
 ) -> tuple[pd.DataFrame, str]:
     scored = model_score.copy()
     scored["fs_time"] = pd.to_datetime(scored["fs_time"], errors="coerce")
-    historical = scored.loc[scored["fs_time"] < latest_fs_time].copy()
-    if historical.empty:
+    historical_all = scored.loc[scored["fs_time"] < latest_fs_time].copy()
+    if historical_all.empty:
         raise ValueError("No historical scores are available before the newest actual model score date.")
 
-    start = pd.to_datetime(historical_period_start) if historical_period_start is not None else historical["fs_time"].min()
-    end = pd.to_datetime(historical_period_end) if historical_period_end is not None else historical["fs_time"].max()
-    if start > end:
-        raise ValueError("historical_period_start must be earlier than or equal to historical_period_end.")
+    if historical_period is None:
+        selected = historical_all.loc[historical_all["fs_time"] == historical_all["fs_time"].max()].copy()
+        ts = selected["fs_time"].iloc[0]
+        return selected, _format_period_label(ts, ts)
 
-    historical = historical.loc[(historical["fs_time"] >= start) & (historical["fs_time"] <= end)].copy()
+    selected_period = pd.to_datetime(historical_period).to_period("M")
+    historical = historical_all.loc[historical_all["fs_time"].dt.to_period("M") == selected_period].copy()
     if historical.empty:
-        raise ValueError("Historical period filter returned no model scores. Adjust historical period boundaries.")
-
-    actual_start = historical["fs_time"].min()
-    actual_end = historical["fs_time"].max()
-    return historical, _format_period_label(actual_start, actual_end)
+        available = sorted(historical_all["fs_time"].dt.strftime("%Y-%m-%d").unique())
+        raise ValueError(
+            "No historical scores found for requested period. "
+            f"Requested={selected_period}; available snapshots={available}"
+        )
+    ts = historical["fs_time"].iloc[0]
+    return historical, _format_period_label(ts, ts)
 
 
 def _required_cutoff_for_desired_rate(metrics: pd.DataFrame, desired_rate: float) -> int:
@@ -636,8 +638,7 @@ def EvaluateModel(
     seed: int | None = 42,
     include_campaign_selection: bool = False,
     campaign_clients: pd.DataFrame | None = None,
-    historical_period_start: str | pd.Timestamp | None = None,
-    historical_period_end: str | pd.Timestamp | None = None,
+    historical_period: str | pd.Timestamp | None = None,
 ) -> Path:
     model_score, target_store, _ = create_simulated_tables(seed=seed)
     model_score = model_score.copy()
@@ -687,8 +688,7 @@ def EvaluateModel(
         historical_scores, historical_period_label = _resolve_historical_scores(
             model_score=model_score,
             latest_fs_time=latest_fs_time,
-            historical_period_start=historical_period_start,
-            historical_period_end=historical_period_end,
+            historical_period=historical_period,
         )
         historical_portfolio_rate_pct = _historical_portfolio_event_rate(
             historical_scores=historical_scores,

@@ -103,8 +103,7 @@ def test_campaign_selection_report_displays_portfolio_baseline_period(tmp_path) 
         seed=42,
         include_campaign_selection=True,
         campaign_clients=campaign_clients,
-        historical_period_start="2025-10-01",
-        historical_period_end="2025-12-31",
+        historical_period="2025-12-31",
     )
     html = output.read_text(encoding="utf-8")
     assert "Portfolio baseline period:" in html

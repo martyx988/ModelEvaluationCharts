@@ -782,3 +782,24 @@ Use only actual scores for selection/model comparison metrics, keep historical d
 
 ## Final Summary
 Slice 17 completed. Campaign comparison now follows business logic: selection/model-guided are estimated from actual scores, portfolio average is historical-event baseline for selected period, and the second chart is a clearer cumulative estimated success-rate view for selected clients vs model-guided same volume.
+
+---
+
+# Slice 18 - Single Historical Period Input
+
+## Task Contract
+
+### Goal
+Allow choosing only one historical period in `EvaluateModel` and notebook usage.
+
+### Tactical Plan
+- [x] Replace historical period range parameters with single `historical_period` input.
+- [x] Update historical snapshot resolver to select one month by that period value.
+- [x] Update tests and notebook calls to use the single-period parameter.
+- [x] Re-run pytest and notebook execution.
+
+## Progress Log
+- 2026-02-25: Replaced `historical_period_start`/`historical_period_end` with `historical_period`.
+- 2026-02-25: Historical selection now resolves one monthly period; default uses latest available historical snapshot.
+- 2026-02-25: Updated notebook campaign call to `historical_period=\"2025-12-31\"`.
+- 2026-02-25: Verified with `python -m pytest -q` (6 passed) and notebook execution via nbconvert.
