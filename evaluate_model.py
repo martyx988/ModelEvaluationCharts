@@ -377,9 +377,155 @@ def _build_cutoff_summary(metrics: pd.DataFrame, selected_percentile: int) -> di
     }
 
 
+def _build_campaign_selection_summary(
+    performance: pd.DataFrame,
+    metrics: pd.DataFrame,
+    campaign_clients: pd.DataFrame,
+) -> dict[str, float | int]:
+    if "pt_unified_key" not in campaign_clients.columns:
+        raise ValueError("campaign_clients must include column: pt_unified_key")
+    selected_keys = set(campaign_clients["pt_unified_key"].dropna().astype(str))
+    if not selected_keys:
+        raise ValueError("campaign_clients.pt_unified_key is empty after removing null values.")
+
+    performance_keys = performance["pt_unified_key"].astype(str)
+    selected = performance.loc[performance_keys.isin(selected_keys)].copy()
+    if selected.empty:
+        raise ValueError("None of campaign_clients.pt_unified_key matched scored clients.")
+
+    n_total = len(performance)
+    n_selected = len(selected)
+    total_successes = int(performance["is_success"].sum())
+    selected_successes = int(selected["is_success"].sum())
+    selected_rate = (selected_successes / n_selected * 100.0) if n_selected > 0 else 0.0
+    selected_capture = (selected_successes / total_successes * 100.0) if total_successes > 0 else 0.0
+
+    model_top_n = performance.head(n_selected)
+    model_top_successes = int(model_top_n["is_success"].sum())
+    model_top_rate = (model_top_successes / n_selected * 100.0) if n_selected > 0 else 0.0
+    model_top_capture = (model_top_successes / total_successes * 100.0) if total_successes > 0 else 0.0
+
+    overall_rate = (total_successes / n_total * 100.0) if n_total > 0 else 0.0
+    volume_pct = n_selected / n_total * 100.0
+    volume_percentile = int(min(100, max(1, np.ceil(volume_pct))))
+
+    return {
+        "selected_clients": n_selected,
+        "selected_rate_pct": selected_rate,
+        "selected_capture_pct": selected_capture,
+        "model_top_rate_pct": model_top_rate,
+        "model_top_capture_pct": model_top_capture,
+        "overall_rate_pct": overall_rate,
+        "volume_percentile": volume_percentile,
+        "model_curve_rate_pct": float(
+            metrics.loc[metrics["contacted_percentile"] == volume_percentile, "cumulative_success_rate_pct"].iloc[0]
+        ),
+    }
+
+
+def _make_campaign_selection_figure(metrics: pd.DataFrame, summary: dict[str, float | int]) -> go.Figure:
+    fig = make_subplots(
+        rows=2,
+        cols=1,
+        shared_xaxes=False,
+        vertical_spacing=0.18,
+        subplot_titles=("Selection Success Rate Benchmark", "Cumulative Success Rate Context"),
+    )
+
+    benchmark_labels = ["Your Selection", "Model-guided at same volume", "Portfolio average"]
+    benchmark_values = [
+        float(summary["selected_rate_pct"]),
+        float(summary["model_top_rate_pct"]),
+        float(summary["overall_rate_pct"]),
+    ]
+    fig.add_trace(
+        go.Bar(
+            x=benchmark_labels,
+            y=benchmark_values,
+            marker={"color": ["#2563EB", "#0EA5E9", "#94A3B8"]},
+            text=[f"{v:.1f}%" for v in benchmark_values],
+            textposition="outside",
+            hovertemplate="%{x}<br>Success rate: %{y:.2f}%<extra></extra>",
+            showlegend=False,
+        ),
+        row=1,
+        col=1,
+    )
+
+    x = metrics["contacted_percentile"]
+    fig.add_trace(
+        go.Scatter(
+            x=x,
+            y=metrics["cumulative_success_rate_pct"],
+            mode="lines",
+            line={"color": "#1D4ED8", "width": 2.5},
+            name="Model cumulative SR",
+            hovertemplate="Percentile: %{x}%<br>Cumulative SR: %{y:.2f}%<extra></extra>",
+        ),
+        row=2,
+        col=1,
+    )
+
+    vol = int(summary["volume_percentile"])
+    sel_rate = float(summary["selected_rate_pct"])
+    fig.update_layout(
+        shapes=[
+            dict(
+                type="line",
+                xref="x2",
+                yref="paper",
+                x0=vol,
+                x1=vol,
+                y0=0.0,
+                y1=0.44,
+                line={"color": "#2563EB", "width": 1.8, "dash": "dot"},
+            ),
+            dict(
+                type="line",
+                xref="paper",
+                yref="y2",
+                x0=0.0,
+                x1=1.0,
+                y0=sel_rate,
+                y1=sel_rate,
+                line={"color": "#DC2626", "width": 1.4, "dash": "dash"},
+            ),
+        ],
+        annotations=[
+            dict(
+                x=vol,
+                y=sel_rate,
+                xref="x2",
+                yref="y2",
+                text=f"Your selection rate: {sel_rate:.1f}% @ ~{vol}%",
+                showarrow=True,
+                arrowhead=2,
+                ax=24,
+                ay=-28,
+                bgcolor="rgba(255,255,255,0.95)",
+                bordercolor="#CBD5E1",
+                borderwidth=1,
+                font={"size": 11, "color": "#0F172A"},
+            )
+        ],
+        paper_bgcolor="#FFFFFF",
+        plot_bgcolor="#FFFFFF",
+        font={"family": "Segoe UI, Arial, sans-serif", "size": 12, "color": "#0F172A"},
+        width=680,
+        height=620,
+        margin={"l": 72, "r": 30, "t": 80, "b": 60},
+    )
+    fig.update_yaxes(title_text="Success Rate (%)", row=1, col=1, rangemode="tozero", gridcolor="#E2E8F0")
+    fig.update_yaxes(title_text="Success Rate (%)", row=2, col=1, rangemode="tozero", gridcolor="#E2E8F0")
+    fig.update_xaxes(title_text="Contacted Percentile (%)", row=2, col=1, dtick=10)
+    return fig
+
+
 def EvaluateModel(
     output_html_path: str | Path = "outputs/model_evaluation_report.html",
     seed: int | None = 42,
+    include_campaign_selection: bool = False,
+    campaign_clients: pd.DataFrame | None = None,
 ) -> Path:
     model_score, target_store, _ = create_simulated_tables(seed=seed)
     performance = _prepare_performance_data(model_score=model_score, target_store=target_store)
@@ -412,6 +558,31 @@ def EvaluateModel(
         for _, row in metrics.iterrows()
     ]
     best_ks_percentile = int(metrics["best_ks_percentile"].iat[0])
+    campaign_section_html = ""
+    if include_campaign_selection:
+        if campaign_clients is None:
+            raise ValueError("campaign_clients must be provided when include_campaign_selection=True.")
+        campaign_summary = _build_campaign_selection_summary(
+            performance=performance,
+            metrics=metrics,
+            campaign_clients=campaign_clients,
+        )
+        campaign_fig = _make_campaign_selection_figure(metrics=metrics, summary=campaign_summary)
+        campaign_fig_html = campaign_fig.to_html(full_html=False, include_plotlyjs=False, div_id="campaign-figure")
+        campaign_section_html = f"""
+    <section class="campaign-section">
+      <h2>Campaign Selection Potential</h2>
+      <p>
+        This section benchmarks your selected client list against model-guided targeting at the same campaign size.
+      </p>
+      <div class="campaign-kpis">
+        <div class="campaign-kpi"><strong>Your selection SR</strong><span>{campaign_summary["selected_rate_pct"]:.1f}%</span></div>
+        <div class="campaign-kpi"><strong>Model-guided at same volume</strong><span>{campaign_summary["model_top_rate_pct"]:.1f}%</span></div>
+        <div class="campaign-kpi"><strong>Portfolio average</strong><span>{campaign_summary["overall_rate_pct"]:.1f}%</span></div>
+      </div>
+      {campaign_fig_html}
+    </section>
+"""
 
     output_path = Path(output_html_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -598,6 +769,41 @@ def EvaluateModel(
       color: var(--accent);
       font-weight: 600;
     }}
+    .campaign-section {{
+      margin-top: 20px;
+      border-top: 1px solid var(--line-soft);
+      padding-top: 14px;
+    }}
+    .campaign-section h2 {{
+      margin: 0 0 6px 0;
+      font-size: 22px;
+      color: var(--text-main);
+    }}
+    .campaign-kpis {{
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 8px;
+      margin: 8px 0 8px 0;
+    }}
+    .campaign-kpi {{
+      border: 1px solid var(--line-soft);
+      border-radius: 8px;
+      padding: 8px 10px;
+      background: #FCFEFF;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      color: var(--text-muted);
+    }}
+    .campaign-kpi strong {{
+      color: var(--text-main);
+      font-weight: 600;
+    }}
+    .campaign-kpi span {{
+      color: #1D4ED8;
+      font-weight: 700;
+    }}
     @media (max-width: 1100px) {{
       .content-grid {{
         grid-template-columns: 1fr;
@@ -700,6 +906,7 @@ def EvaluateModel(
         </section>
       </aside>
     </div>
+    {campaign_section_html}
   </div>
   <script>
     const cutoffData = {json.dumps(cutoff_points)};

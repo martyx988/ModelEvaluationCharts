@@ -3,6 +3,7 @@ from __future__ import annotations
 import pandas as pd
 
 from evaluate_model import EvaluateModel, _build_metrics_by_contact_percentile, _make_figure
+from simulated_data import create_simulated_tables
 
 
 def _performance_fixture() -> pd.DataFrame:
@@ -68,3 +69,18 @@ def test_generated_report_contains_interactive_cutoff_control(tmp_path) -> None:
     assert "point.p <= required" in html
     assert "const required = point.p;" in html
     assert "How to read these charts" in html
+
+
+def test_generated_report_includes_campaign_selection_section_when_enabled(tmp_path) -> None:
+    model_score, _, _ = create_simulated_tables(seed=42)
+    campaign_clients = model_score[["pt_unified_key"]].head(50).copy()
+    output = tmp_path / "report_selection.html"
+    EvaluateModel(
+        output_html_path=output,
+        seed=42,
+        include_campaign_selection=True,
+        campaign_clients=campaign_clients,
+    )
+    html = output.read_text(encoding="utf-8")
+    assert "Campaign Selection Potential" in html
+    assert "Model-guided at same volume" in html

@@ -601,3 +601,39 @@ Ensure selected-cutoff and desired-rate cutoff markers always align to the same 
 
 ## Final Summary
 Slice 10 completed. Selected-cutoff and desired-rate cutoff markers are now hard-synchronized to the same percentile after interactions, eliminating line mismatch.
+
+---
+
+# Slice 11 - Campaign Selection Comparison Mode
+
+## Task Contract
+
+### Goal
+Add an optional campaign-selection mode where users pass selected client keys and get additional charts estimating potential success performance for that selection, while still seeing the original two charts.
+
+### Acceptance Criteria
+- `EvaluateModel` accepts a better-named campaign-selection DataFrame parameter (with `pt_unified_key`).
+- Default mode (`False`) renders current charts only.
+- Compare mode (`True` + valid selection df) renders original charts plus additional selection-potential comparison charts.
+- Selection mode clearly shows:
+  - success rate of selected clients
+  - model-guided success rate at same volume
+  - overall baseline.
+
+### Tactical Plan
+- [x] Add tests for campaign-selection mode HTML output.
+- [x] Extend API with campaign-selection toggle + DataFrame input validation.
+- [x] Implement selection summary computation and comparison figure.
+- [x] Embed additional section in report when compare mode is enabled.
+- [x] Run pytest and regenerate report.
+
+## Progress Log
+- 2026-02-25: Opened Slice 11 for optional campaign-selection comparison reporting.
+- 2026-02-25: Added test covering campaign selection section rendering in compare mode.
+- 2026-02-25: Extended `EvaluateModel` signature with `include_campaign_selection` and `campaign_clients`.
+- 2026-02-25: Implemented campaign selection summary metrics and a dedicated comparison figure.
+- 2026-02-25: Embedded campaign potential section while preserving original two charts.
+- 2026-02-25: Verified with `python -m pytest -q` (4 passed) and regenerated report.
+
+## Final Summary
+Slice 11 completed. Report now supports optional campaign-selection comparison mode with additional potential-success benchmarking charts, while keeping the original two charts for direct comparison.
