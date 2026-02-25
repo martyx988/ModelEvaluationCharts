@@ -65,12 +65,14 @@ def _build_metrics_by_contact_percentile(performance: pd.DataFrame) -> pd.DataFr
 
     performance = performance.copy()
     performance["cum_successes"] = performance["is_success"].astype(int).cumsum()
+    performance["cum_non_successes"] = (~performance["is_success"].astype(bool)).astype(int).cumsum()
     performance["cum_clients"] = np.arange(1, n_clients + 1)
 
     total_successes = int(performance["is_success"].sum())
+    total_non_successes = int(n_clients - total_successes)
     percentile_marks = np.arange(1, 101)
     idx = np.ceil(percentile_marks * n_clients / 100).astype(int) - 1
-    points = performance.iloc[idx].copy()
+    points = performance.iloc[idx].copy().reset_index(drop=True)
 
     points["contacted_percentile"] = percentile_marks
     points["gain_pct"] = np.where(
@@ -80,17 +82,38 @@ def _build_metrics_by_contact_percentile(performance: pd.DataFrame) -> pd.DataFr
     )
     points["cumulative_success_rate_pct"] = points["cum_successes"] / points["cum_clients"] * 100.0
     points["random_baseline_gain_pct"] = points["contacted_percentile"].astype(float)
+    prevalence_pct = total_successes / n_clients * 100.0
+    points["ideal_gain_pct"] = np.where(
+        prevalence_pct > 0,
+        np.minimum(points["contacted_percentile"] / prevalence_pct * 100.0, 100.0),
+        0.0,
+    )
+    points["non_success_share_pct"] = np.where(
+        total_non_successes > 0,
+        points["cum_non_successes"] / total_non_successes * 100.0,
+        0.0,
+    )
+    points["ks_pct"] = points["gain_pct"] - points["non_success_share_pct"]
+    best_ks_percentile = int(points.loc[points["ks_pct"].idxmax(), "contacted_percentile"])
+    points["best_ks_percentile"] = best_ks_percentile
     points["total_successes"] = total_successes
+    points["total_non_successes"] = total_non_successes
 
     return points[
         [
             "contacted_percentile",
             "cum_clients",
             "cum_successes",
+            "cum_non_successes",
             "gain_pct",
             "random_baseline_gain_pct",
+            "ideal_gain_pct",
+            "non_success_share_pct",
+            "ks_pct",
+            "best_ks_percentile",
             "cumulative_success_rate_pct",
             "total_successes",
+            "total_non_successes",
         ]
     ]
 
@@ -99,6 +122,7 @@ def _make_figure(metrics: pd.DataFrame, default_percentile: int = 20) -> go.Figu
     fig = make_subplots(
         rows=2,
         cols=1,
+        specs=[[{"secondary_y": True}], [{"secondary_y": False}]],
         shared_xaxes=True,
         vertical_spacing=0.1,
         subplot_titles=(
@@ -120,6 +144,7 @@ def _make_figure(metrics: pd.DataFrame, default_percentile: int = 20) -> go.Figu
         ),
         row=1,
         col=1,
+        secondary_y=False,
     )
     fig.add_trace(
         go.Scatter(
@@ -132,6 +157,46 @@ def _make_figure(metrics: pd.DataFrame, default_percentile: int = 20) -> go.Figu
         ),
         row=1,
         col=1,
+        secondary_y=False,
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=x,
+            y=metrics["ideal_gain_pct"],
+            mode="lines",
+            name="Ideal Gain",
+            line={"color": "#0284C7", "width": 2, "dash": "dot"},
+            hovertemplate="Contacted: %{x}%<br>Ideal gain: %{y:.2f}%<extra></extra>",
+        ),
+        row=1,
+        col=1,
+        secondary_y=False,
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=x,
+            y=metrics["non_success_share_pct"],
+            mode="lines",
+            name="Cumulative Non-Success Share",
+            line={"color": "#EF4444", "width": 2, "dash": "dashdot"},
+            hovertemplate="Contacted: %{x}%<br>Non-success share: %{y:.2f}%<extra></extra>",
+        ),
+        row=1,
+        col=1,
+        secondary_y=False,
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=x,
+            y=metrics["ks_pct"],
+            mode="lines",
+            name="KS",
+            line={"color": "#7C3AED", "width": 2},
+            hovertemplate="Contacted: %{x}%<br>KS: %{y:.2f}pp<extra></extra>",
+        ),
+        row=1,
+        col=1,
+        secondary_y=True,
     )
     fig.add_trace(
         go.Scatter(
@@ -148,15 +213,20 @@ def _make_figure(metrics: pd.DataFrame, default_percentile: int = 20) -> go.Figu
     )
 
     fig.update_xaxes(title_text="Contacted Population Percentile (%)", row=2, col=1)
-    fig.update_yaxes(title_text="Gain (%)", row=1, col=1)
+    fig.update_yaxes(title_text="Gain / Share (%)", row=1, col=1, secondary_y=False)
+    fig.update_yaxes(title_text="KS (pp)", row=1, col=1, secondary_y=True)
     fig.update_yaxes(title_text="Success Rate (%)", row=2, col=1)
 
     base_annotations = list(fig.layout.annotations) if fig.layout.annotations else []
+    best_ks_percentile = int(metrics["best_ks_percentile"].iat[0])
+    best_ks_row = metrics.loc[metrics["contacted_percentile"] == best_ks_percentile].iloc[0]
+    best_ks_value = float(best_ks_row["ks_pct"])
 
     def slider_layout_for(percentile_value: int) -> dict:
         row = metrics.loc[metrics["contacted_percentile"] == percentile_value].iloc[0]
         gain = float(row["gain_pct"])
         success_rate = float(row["cumulative_success_rate_pct"])
+        ks_value = float(row["ks_pct"])
         contacted_clients = int(row["cum_clients"])
         successes = int(row["cum_successes"])
         total_successes = int(row["total_successes"])
@@ -181,7 +251,7 @@ def _make_figure(metrics: pd.DataFrame, default_percentile: int = 20) -> go.Figu
                 x=percentile_value,
                 y=success_rate,
                 xref="x2",
-                yref="y2",
+                yref="y3",
                 text=f"{percentile_value}% -> SR {success_rate:.1f}%",
                 showarrow=True,
                 arrowhead=2,
@@ -189,6 +259,21 @@ def _make_figure(metrics: pd.DataFrame, default_percentile: int = 20) -> go.Figu
                 ay=-30,
                 bgcolor="rgba(0,167,111,0.12)",
                 bordercolor="#00A76F",
+                borderwidth=1,
+                font={"size": 11, "color": "#0F172A"},
+            ),
+            dict(
+                x=percentile_value,
+                y=ks_value,
+                xref="x",
+                yref="y2",
+                text=f"{percentile_value}% -> KS {ks_value:.1f}pp",
+                showarrow=True,
+                arrowhead=2,
+                ax=30,
+                ay=30,
+                bgcolor="rgba(124,58,237,0.12)",
+                bordercolor="#7C3AED",
                 borderwidth=1,
                 font={"size": 11, "color": "#0F172A"},
             ),
@@ -205,11 +290,27 @@ def _make_figure(metrics: pd.DataFrame, default_percentile: int = 20) -> go.Figu
                 font={"size": 13, "color": "#0F172A"},
                 bgcolor="rgba(255,255,255,0.85)",
             ),
+            dict(
+                x=best_ks_percentile,
+                y=best_ks_value,
+                xref="x",
+                yref="y2",
+                text=f"Best KS: {best_ks_value:.1f}pp @ {best_ks_percentile}%",
+                showarrow=True,
+                arrowhead=2,
+                ax=-45,
+                ay=-35,
+                bgcolor="rgba(124,58,237,0.12)",
+                bordercolor="#7C3AED",
+                borderwidth=1,
+                font={"size": 11, "color": "#0F172A"},
+            ),
         ]
         return {
             "shapes": [
                 dict(
                     type="line",
+                    name="selected_cutoff",
                     xref="x2",
                     yref="paper",
                     x0=percentile_value,
@@ -217,6 +318,17 @@ def _make_figure(metrics: pd.DataFrame, default_percentile: int = 20) -> go.Figu
                     y0=0.0,
                     y1=1.0,
                     line={"color": "#E11D48", "width": 2, "dash": "dot"},
+                ),
+                dict(
+                    type="line",
+                    name="ks_optimal_split",
+                    xref="x",
+                    yref="paper",
+                    x0=best_ks_percentile,
+                    x1=best_ks_percentile,
+                    y0=0.5,
+                    y1=1.0,
+                    line={"color": "#7C3AED", "width": 2, "dash": "dash"},
                 )
             ],
             "annotations": base_annotations + dynamic_annotations,
