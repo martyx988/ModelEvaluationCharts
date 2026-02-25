@@ -345,3 +345,60 @@ Restore user-selectable cutoff interaction while keeping the presentation-style 
 
 ## Final Summary
 Slice 5 completed. Interactive cutoff selection is restored through a clean external control that updates KPI cards and chart cutoff annotation/line without reintroducing in-plot slider clutter.
+
+---
+
+# Slice 6 - Narrower Charts + Business Reading Guide
+
+## Task Contract
+
+### Goal
+Make charts visually thinner and add a business-facing interpretation panel to the right of the charts.
+
+### Acceptance Criteria
+- Chart area width is reduced from current presentation layout.
+- A right-side panel explains how to interpret both charts in business terms.
+- Layout remains responsive (right panel stacks below on smaller screens).
+
+### Non-Goals
+- Changing evaluation logic or interactive cutoff behavior.
+
+### Assumptions / Open Questions
+- Assumption: desktop layout uses a two-column content area (chart left, guide right).
+
+## Strategic Plan
+- Add test for business guidance panel content in generated HTML.
+- Refactor report body layout into two columns.
+- Reduce figure width to improve balance with right-side narrative panel.
+
+## Tactical Plan
+- [x] Add/extend report-level test for right-side guidance panel text.
+- [x] Reduce plot width and adjust margins for thinner chart rendering.
+- [x] Add right-side “How to read these charts” business narrative panel.
+- [x] Ensure responsive behavior with media query.
+- [x] Run pytest and regenerate report.
+
+## Architecture Notes
+- Public API unchanged.
+- HTML shell adds a `content-grid` container with figure and narrative aside.
+
+## Test Plan
+
+### Automated tests (what/where)
+- `tests/test_evaluate_model.py`:
+  - assert generated HTML includes `"How to read these charts"` and business guidance keywords.
+
+### Manual verification script
+- Run: `python evaluate_model.py`
+- Open report and verify chart is narrower, with explanatory panel on right.
+
+## Progress Log
+- 2026-02-25: Opened Slice 6 for chart width tuning and business interpretation panel.
+- 2026-02-25: Added report-level test expectation for `"How to read these charts"` content.
+- 2026-02-25: Reduced Plotly figure width and shifted layout to two-column report content.
+- 2026-02-25: Added right-side business interpretation panel with practical guidance for gain/success rate/cutoff lines.
+- 2026-02-25: Added responsive media behavior so guide panel stacks below charts on smaller screens.
+- 2026-02-25: Verified with `python -m pytest -q` (3 passed) and regenerated report.
+
+## Final Summary
+Slice 6 completed. Charts are narrower and paired with a right-side business-oriented reading guide, producing a clearer and more presentation-ready layout.

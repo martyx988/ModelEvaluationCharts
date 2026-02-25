@@ -288,7 +288,7 @@ def _make_figure(metrics: pd.DataFrame, default_percentile: int = 20) -> go.Figu
             "xanchor": "center",
             "font": {"size": 28, "color": "#0F172A", "family": "Segoe UI, Arial, sans-serif"},
         },
-        width=1180,
+        width=860,
         height=940,
         margin={"l": 92, "r": 55, "t": 120, "b": 90},
         hovermode="x unified",
@@ -372,13 +372,54 @@ def EvaluateModel(
       font-family: "Segoe UI", Arial, sans-serif;
     }}
     .wrap {{
-      max-width: 1240px;
+      max-width: 1360px;
       margin: 0 auto;
       background: var(--panel);
       border: 1px solid var(--line-soft);
       border-radius: 14px;
       box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
       padding: 26px 24px 14px 24px;
+    }}
+    .content-grid {{
+      display: grid;
+      grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+      gap: 16px;
+      align-items: start;
+    }}
+    .figure-panel {{
+      min-width: 0;
+    }}
+    .guide-panel {{
+      border: 1px solid var(--line-soft);
+      border-radius: 12px;
+      background: #FAFCFF;
+      padding: 14px 14px 12px 14px;
+      position: sticky;
+      top: 16px;
+    }}
+    .guide-panel h3 {{
+      margin: 0 0 10px 0;
+      font-size: 16px;
+      color: var(--text-main);
+    }}
+    .guide-panel p {{
+      margin: 0 0 10px 0;
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.45;
+    }}
+    .guide-point {{
+      margin: 0 0 10px 0;
+      padding: 8px 9px;
+      border-radius: 8px;
+      background: #FFFFFF;
+      border: 1px solid #E6EEF8;
+    }}
+    .guide-point strong {{
+      color: var(--text-main);
+      display: block;
+      margin-bottom: 3px;
+      font-size: 13px;
     }}
     .header {{
       border-bottom: 1px solid var(--line-soft);
@@ -470,6 +511,14 @@ def EvaluateModel(
       color: var(--accent);
       font-weight: 600;
     }}
+    @media (max-width: 1100px) {{
+      .content-grid {{
+        grid-template-columns: 1fr;
+      }}
+      .guide-panel {{
+        position: static;
+      }}
+    }}
   </style>
 </head>
 <body>
@@ -507,11 +556,37 @@ def EvaluateModel(
       <input id="cutoff-slider" type="range" min="1" max="100" step="1" value="{summary["selected_percentile"]}" />
       <span id="cutoff-value">{summary["selected_percentile"]}%</span>
     </div>
-    {fig_html}
-    <div class="footnote">
-      Definitions: Gain = cumulative share of all successes captured up to the selected percentile.
-      Success rate = cumulative successes divided by cumulative contacted clients.
-      Success is defined as an observed event from scoring time through one calendar month.
+    <div class="content-grid">
+      <div class="figure-panel">
+        {fig_html}
+        <div class="footnote">
+          Definitions: Gain = cumulative share of all successes captured up to the selected percentile.
+          Success rate = cumulative successes divided by cumulative contacted clients.
+          Success is defined as an observed event from scoring time through one calendar month.
+        </div>
+      </div>
+      <aside class="guide-panel">
+        <h3>How to read these charts</h3>
+        <p>
+          Use this view to choose a practical business cutoff: who to target, expected conversion quality,
+          and how many successes you can capture.
+        </p>
+        <div class="guide-point">
+          <strong>Top chart: Cumulative Gain</strong>
+          The blue line shows the share of all possible successes captured as you target more clients.
+          A steeper early rise means stronger model prioritization.
+        </div>
+        <div class="guide-point">
+          <strong>Bottom chart: Cumulative Success Rate</strong>
+          This indicates expected conversion quality among contacted clients at each cutoff.
+          Higher values support more efficient spend.
+        </div>
+        <div class="guide-point">
+          <strong>Cutoff lines</strong>
+          Red dotted line is your selected business cutoff. Gray dashed line is the statistically optimal
+          KS split and can be used as a benchmark when setting campaign policy.
+        </div>
+      </aside>
     </div>
   </div>
   <script>
