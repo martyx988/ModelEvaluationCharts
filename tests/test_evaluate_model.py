@@ -331,6 +331,10 @@ def test_generated_report_supports_czech_language_output(tmp_path) -> None:
     assert "Výběrový percentil cut-off" in html
     assert "Porovnání výchozí úspěšnosti" in html
     assert "Graf kumulativního zisku" in html
+    assert "Definice:" in html
+    assert "Jak číst tento graf" in html
+    assert "Každý percentilový koš ukazuje" in html
+    assert "Graf zisku odpovídá na to" in html
     assert 'const numberLocale = "cs-CZ"' in html
     assert "toLocaleString(numberLocale)" in html
 

@@ -203,6 +203,39 @@ def _resolve_report_language(language: str) -> dict[str, str]:
             "top_gain_title": "Cumulative Gain Chart",
             "top_success_title": "Cumulative Success Rate Chart",
             "tooltip_how_to_read": "How to read this chart",
+            "tooltip_campaign_distribution_p": "Each percentile bucket shows where campaign clients sit in the model ranking.",
+            "tooltip_campaign_distribution_li1_label": "Gray bars:",
+            "tooltip_campaign_distribution_li1_text": "full scored population per percentile.",
+            "tooltip_campaign_distribution_li2_label": "Blue bars:",
+            "tooltip_campaign_distribution_li2_text": "your campaign clients in the same percentile.",
+            "tooltip_campaign_distribution_li3_text": "More blue mass in higher percentiles means stronger targeting quality.",
+            "tooltip_campaign_rate_compare_p": "Bars compare expected success rate under three business scenarios.",
+            "tooltip_campaign_rate_compare_li1_label": "Whole Base (Default):",
+            "tooltip_campaign_rate_compare_li1_text": "baseline expected quality at the default cutoff.",
+            "tooltip_campaign_rate_compare_li2_label": "Campaign Clients (Default):",
+            "tooltip_campaign_rate_compare_li2_text": "expected quality of your selected audience.",
+            "tooltip_campaign_rate_compare_li3_label": "Top-N by Score:",
+            "tooltip_campaign_rate_compare_li3_text": "the model-optimal audience at the same campaign size.",
+            "tooltip_campaign_gain_p": "Shows how much expected success volume is captured as contact depth increases.",
+            "tooltip_campaign_gain_li1_text": "Blue model line above gray random baseline indicates ranking value.",
+            "tooltip_campaign_gain_li2_text": "The red marker tracks the currently selected cutoff from the slider.",
+            "tooltip_campaign_success_p": "Bars show cumulative expected conversion quality inside the campaign-only base.",
+            "tooltip_campaign_success_li1_text": "Blue bars are within the cutoff required to hit desired success rate.",
+            "tooltip_campaign_success_li2_text": "Gray bars are outside that quality threshold.",
+            "tooltip_top_gain_p": "The gain chart answers how much of total potential you capture at each targeting depth.",
+            "tooltip_top_gain_li1_label": "Model vs Random:",
+            "tooltip_top_gain_li1_text": "earlier blue-vs-gray separation means better prioritization.",
+            "tooltip_top_gain_li2_label": "Red cutoff line:",
+            "tooltip_top_gain_li2_text": "your current operating point from the slider.",
+            "tooltip_top_gain_li3_text": "Use it to balance campaign reach versus captured value.",
+            "tooltip_top_success_p": "This chart shows cumulative quality of the contacted population.",
+            "tooltip_top_success_li1_text": "Set a desired success rate target with the slider.",
+            "tooltip_top_success_li2_text": "The required cutoff marker shows the largest audience that still meets that target.",
+            "tooltip_top_success_li3_text": "Blue bars are within target; gray bars are outside target.",
+            "footnote_definitions_prefix": "Definitions:",
+            "footnote_definitions_line1": "Gain = cumulative share of all successes captured up to the selected percentile.",
+            "footnote_definitions_line2": "Success rate = cumulative successes divided by cumulative contacted clients.",
+            "footnote_definitions_line3": "Success is defined as an observed event from scoring time through one calendar month.",
             "number_locale": "en-US",
         },
         "cs": {
@@ -229,6 +262,39 @@ def _resolve_report_language(language: str) -> dict[str, str]:
             "top_gain_title": "Graf kumulativního zisku",
             "top_success_title": "Graf kumulativní úspěšnosti",
             "tooltip_how_to_read": "Jak číst tento graf",
+            "tooltip_campaign_distribution_p": "Každý percentilový koš ukazuje, kde se klienti kampaně nacházejí v pořadí modelu.",
+            "tooltip_campaign_distribution_li1_label": "Šedé sloupce:",
+            "tooltip_campaign_distribution_li1_text": "celá skórovaná populace v daném percentilu.",
+            "tooltip_campaign_distribution_li2_label": "Modré sloupce:",
+            "tooltip_campaign_distribution_li2_text": "vaši klienti kampaně ve stejném percentilu.",
+            "tooltip_campaign_distribution_li3_text": "Více modré hmoty ve vyšších percentilech znamená lepší kvalitu cílení.",
+            "tooltip_campaign_rate_compare_p": "Sloupce porovnávají očekávanou úspěšnost ve třech obchodních scénářích.",
+            "tooltip_campaign_rate_compare_li1_label": "Celá báze (výchozí):",
+            "tooltip_campaign_rate_compare_li1_text": "základní očekávaná kvalita při výchozím cut-off.",
+            "tooltip_campaign_rate_compare_li2_label": "Klienti kampaně (výchozí):",
+            "tooltip_campaign_rate_compare_li2_text": "očekávaná kvalita vašeho vybraného publika.",
+            "tooltip_campaign_rate_compare_li3_label": "Top-N dle skóre:",
+            "tooltip_campaign_rate_compare_li3_text": "modelově optimální publikum při stejném objemu kampaně.",
+            "tooltip_campaign_gain_p": "Ukazuje, kolik očekávaného objemu úspěchů se zachytí s rostoucí hloubkou oslovení.",
+            "tooltip_campaign_gain_li1_text": "Modrá křivka modelu nad šedou náhodnou baseline znamená přínos řazení.",
+            "tooltip_campaign_gain_li2_text": "Červená značka sleduje aktuálně zvolený cut-off ze slideru.",
+            "tooltip_campaign_success_p": "Sloupce ukazují kumulativní očekávanou kvalitu konverze v kampaní omezené bázi.",
+            "tooltip_campaign_success_li1_text": "Modré sloupce jsou v rámci cut-off potřebného pro cílovou úspěšnost.",
+            "tooltip_campaign_success_li2_text": "Šedé sloupce jsou mimo tento práh kvality.",
+            "tooltip_top_gain_p": "Graf zisku odpovídá na to, jakou část celkového potenciálu zachytíte v jednotlivých hloubkách cílení.",
+            "tooltip_top_gain_li1_label": "Model vs. náhoda:",
+            "tooltip_top_gain_li1_text": "dřívější oddělení modré a šedé znamená lepší prioritizaci.",
+            "tooltip_top_gain_li2_label": "Červená cut-off čára:",
+            "tooltip_top_gain_li2_text": "váš aktuální provozní bod ze slideru.",
+            "tooltip_top_gain_li3_text": "Použijte graf pro vyvážení zásahu kampaně a zachycené hodnoty.",
+            "tooltip_top_success_p": "Tento graf ukazuje kumulativní kvalitu oslovené populace.",
+            "tooltip_top_success_li1_text": "Pomocí slideru nastavte cílovou úspěšnost.",
+            "tooltip_top_success_li2_text": "Marker požadovaného cut-off ukazuje největší publikum, které cíl ještě splní.",
+            "tooltip_top_success_li3_text": "Modré sloupce jsou v cíli, šedé sloupce mimo cíl.",
+            "footnote_definitions_prefix": "Definice:",
+            "footnote_definitions_line1": "Zisk = kumulativní podíl všech úspěchů zachycených do zvoleného percentilu.",
+            "footnote_definitions_line2": "Úspěšnost = kumulativní úspěchy dělené kumulativním počtem oslovených klientů.",
+            "footnote_definitions_line3": "Úspěch je definován jako pozorovaná událost od času skórování do konce jednoho kalendářního měsíce.",
             "number_locale": "cs-CZ",
         },
     }
@@ -1477,11 +1543,11 @@ def EvaluateModel(
               <button class="tooltip-btn" type="button" aria-describedby="tooltip-campaign-distribution">?</button>
               <div class="tooltip-body" id="tooltip-campaign-distribution">
                 <strong>{labels["tooltip_how_to_read"]}</strong>
-                <p>Each percentile bucket shows where campaign clients sit in the model ranking.</p>
+                <p>{labels["tooltip_campaign_distribution_p"]}</p>
                 <ul>
-                  <li><strong>Gray bars:</strong> full scored population per percentile.</li>
-                  <li><strong>Blue bars:</strong> your campaign clients in the same percentile.</li>
-                  <li>More blue mass in higher percentiles means stronger targeting quality.</li>
+                  <li><strong>{labels["tooltip_campaign_distribution_li1_label"]}</strong> {labels["tooltip_campaign_distribution_li1_text"]}</li>
+                  <li><strong>{labels["tooltip_campaign_distribution_li2_label"]}</strong> {labels["tooltip_campaign_distribution_li2_text"]}</li>
+                  <li>{labels["tooltip_campaign_distribution_li3_text"]}</li>
                 </ul>
               </div>
             </div>
@@ -1495,11 +1561,11 @@ def EvaluateModel(
               <button class="tooltip-btn" type="button" aria-describedby="tooltip-campaign-rate-compare">?</button>
               <div class="tooltip-body" id="tooltip-campaign-rate-compare">
                 <strong>{labels["tooltip_how_to_read"]}</strong>
-                <p>Bars compare expected success rate under three business scenarios.</p>
+                <p>{labels["tooltip_campaign_rate_compare_p"]}</p>
                 <ul>
-                  <li><strong>Whole Base (Default):</strong> baseline expected quality at the default cutoff.</li>
-                  <li><strong>Campaign Clients (Default):</strong> expected quality of your selected audience.</li>
-                  <li><strong>Top-N by Score:</strong> the model-optimal audience at the same campaign size.</li>
+                  <li><strong>{labels["tooltip_campaign_rate_compare_li1_label"]}</strong> {labels["tooltip_campaign_rate_compare_li1_text"]}</li>
+                  <li><strong>{labels["tooltip_campaign_rate_compare_li2_label"]}</strong> {labels["tooltip_campaign_rate_compare_li2_text"]}</li>
+                  <li><strong>{labels["tooltip_campaign_rate_compare_li3_label"]}</strong> {labels["tooltip_campaign_rate_compare_li3_text"]}</li>
                 </ul>
               </div>
             </div>
@@ -1515,10 +1581,10 @@ def EvaluateModel(
               <button class="tooltip-btn" type="button" aria-describedby="tooltip-campaign-gain">?</button>
               <div class="tooltip-body" id="tooltip-campaign-gain">
                 <strong>{labels["tooltip_how_to_read"]}</strong>
-                <p>Shows how much expected success volume is captured as contact depth increases.</p>
+                <p>{labels["tooltip_campaign_gain_p"]}</p>
                 <ul>
-                  <li>Blue model line above gray random baseline indicates ranking value.</li>
-                  <li>The red marker tracks the currently selected cutoff from the slider.</li>
+                  <li>{labels["tooltip_campaign_gain_li1_text"]}</li>
+                  <li>{labels["tooltip_campaign_gain_li2_text"]}</li>
                 </ul>
               </div>
             </div>
@@ -1532,10 +1598,10 @@ def EvaluateModel(
               <button class="tooltip-btn" type="button" aria-describedby="tooltip-campaign-success">?</button>
               <div class="tooltip-body" id="tooltip-campaign-success">
                 <strong>{labels["tooltip_how_to_read"]}</strong>
-                <p>Bars show cumulative expected conversion quality inside the campaign-only base.</p>
+                <p>{labels["tooltip_campaign_success_p"]}</p>
                 <ul>
-                  <li>Blue bars are within the cutoff required to hit desired success rate.</li>
-                  <li>Gray bars are outside that quality threshold.</li>
+                  <li>{labels["tooltip_campaign_success_li1_text"]}</li>
+                  <li>{labels["tooltip_campaign_success_li2_text"]}</li>
                 </ul>
               </div>
             </div>
@@ -1869,11 +1935,11 @@ def EvaluateModel(
               <button class="tooltip-btn" type="button" aria-describedby="tooltip-top-gain">?</button>
               <div class="tooltip-body" id="tooltip-top-gain">
                 <strong>{labels["tooltip_how_to_read"]}</strong>
-                <p>The gain chart answers how much of total potential you capture at each targeting depth.</p>
+                <p>{labels["tooltip_top_gain_p"]}</p>
                 <ul>
-                  <li><strong>Model vs Random:</strong> earlier blue-vs-gray separation means better prioritization.</li>
-                  <li><strong>Red cutoff line:</strong> your current operating point from the slider.</li>
-                  <li>Use it to balance campaign reach versus captured value.</li>
+                  <li><strong>{labels["tooltip_top_gain_li1_label"]}</strong> {labels["tooltip_top_gain_li1_text"]}</li>
+                  <li><strong>{labels["tooltip_top_gain_li2_label"]}</strong> {labels["tooltip_top_gain_li2_text"]}</li>
+                  <li>{labels["tooltip_top_gain_li3_text"]}</li>
                 </ul>
               </div>
             </div>
@@ -1887,11 +1953,11 @@ def EvaluateModel(
               <button class="tooltip-btn" type="button" aria-describedby="tooltip-top-success">?</button>
               <div class="tooltip-body" id="tooltip-top-success">
                 <strong>{labels["tooltip_how_to_read"]}</strong>
-                <p>This chart shows cumulative quality of the contacted population.</p>
+                <p>{labels["tooltip_top_success_p"]}</p>
                 <ul>
-                  <li>Set a desired success rate target with the slider.</li>
-                  <li>The required cutoff marker shows the largest audience that still meets that target.</li>
-                  <li>Blue bars are within target; gray bars are outside target.</li>
+                  <li>{labels["tooltip_top_success_li1_text"]}</li>
+                  <li>{labels["tooltip_top_success_li2_text"]}</li>
+                  <li>{labels["tooltip_top_success_li3_text"]}</li>
                 </ul>
               </div>
             </div>
@@ -1900,9 +1966,9 @@ def EvaluateModel(
         </div>
       </div>
       <div class="footnote">
-        Definitions: Gain = cumulative share of all successes captured up to the selected percentile.
-        Success rate = cumulative successes divided by cumulative contacted clients.
-        Success is defined as an observed event from scoring time through one calendar month.
+        {labels["footnote_definitions_prefix"]} {labels["footnote_definitions_line1"]}
+        {labels["footnote_definitions_line2"]}
+        {labels["footnote_definitions_line3"]}
       </div>
     </div>
     {campaign_section_html}
