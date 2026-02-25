@@ -829,3 +829,23 @@ Replace the bottom cumulative success-rate bar chart with a cleaner line-based c
 
 ## Final Summary
 Slice 19 completed. The cumulative success-rate chart is now a line-based view with clear selected vs outside segments, while cutoff and desired-rate controls remain synchronized.
+
+---
+
+# Slice 20 - Prevent Campaign Benchmark Label Clipping
+
+## Task Contract
+
+### Goal
+Ensure top-of-bar value labels in the campaign benchmark chart are always visible.
+
+### Tactical Plan
+- [x] Add chart headroom in y-axis range for top benchmark bars.
+- [x] Disable bar text clipping at plot boundary.
+- [x] Increase top margin to avoid title/label overlap.
+- [x] Re-run tests and regenerate report.
+
+## Progress Log
+- 2026-02-25: Added `cliponaxis=False` for benchmark bars so outside labels can render fully.
+- 2026-02-25: Replaced top y-axis `rangemode` with explicit padded range (`max * 1.18`) to keep labels visible.
+- 2026-02-25: Increased top chart margin to provide additional whitespace above labels.

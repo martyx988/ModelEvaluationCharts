@@ -574,6 +574,7 @@ def _make_campaign_selection_figure(
             marker={"color": ["#2563EB", "#0EA5E9", "#94A3B8"]},
             text=[f"{v:.1f}%" for v in benchmark_values],
             textposition="outside",
+            cliponaxis=False,
             hovertemplate="%{x}<br>Success rate: %{y:.2f}%<extra></extra>",
             showlegend=False,
         ),
@@ -648,9 +649,16 @@ def _make_campaign_selection_figure(
         font={"family": "Segoe UI, Arial, sans-serif", "size": 12, "color": "#0F172A"},
         width=680,
         height=620,
-        margin={"l": 72, "r": 30, "t": 80, "b": 60},
+        margin={"l": 72, "r": 30, "t": 96, "b": 60},
     )
-    fig.update_yaxes(title_text="Success Rate (%)", row=1, col=1, rangemode="tozero", gridcolor="#E2E8F0")
+    top_max = max(benchmark_values) if benchmark_values else 0.0
+    fig.update_yaxes(
+        title_text="Success Rate (%)",
+        row=1,
+        col=1,
+        range=[0, max(5.0, top_max * 1.18)],
+        gridcolor="#E2E8F0",
+    )
     fig.update_yaxes(title_text="Estimated Success Rate (%)", row=2, col=1, rangemode="tozero", gridcolor="#E2E8F0")
     fig.update_xaxes(title_text="Contacted Share Within Campaign Volume (%)", row=2, col=1, dtick=10, range=[1, 100])
     return fig
