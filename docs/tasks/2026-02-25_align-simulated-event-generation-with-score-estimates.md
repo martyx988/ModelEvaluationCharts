@@ -44,6 +44,7 @@ Find and fix why campaign-selection bottom charts diverge strongly from top char
 - [x] Update Czech HTML copy to use diacritics consistently.
 - [x] Re-run pytest and confirm pass for diacritics + chart-localization slice.
 - [x] Localize tooltip body texts and definitions footnote in Czech.
+- [x] Remove definitions footnote section from the report.
 
 # Architecture Notes
 - Keep `EvaluateModel` API unchanged.
@@ -90,6 +91,7 @@ Find and fix why campaign-selection bottom charts diverge strongly from top char
 - 2026-02-25: Updated Czech report/UI copy to proper diacritics.
 - 2026-02-25: Added regression test for Czech chart labels on figure builders; full test suite passed (`18 passed`).
 - 2026-02-25: Localized remaining tooltip paragraphs/list items and “Definitions” footnote via language labels; regression tests still pass (`18 passed`).
+- 2026-02-25: Removed the definitions footnote block from report output per user request; full tests still pass (`18 passed`).
 
 # Final Summary
 Root cause:

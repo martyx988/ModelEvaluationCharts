@@ -1965,11 +1965,6 @@ def EvaluateModel(
           {top_success_html}
         </div>
       </div>
-      <div class="footnote">
-        {labels["footnote_definitions_prefix"]} {labels["footnote_definitions_line1"]}
-        {labels["footnote_definitions_line2"]}
-        {labels["footnote_definitions_line3"]}
-      </div>
     </div>
     {campaign_section_html}
   </div>
