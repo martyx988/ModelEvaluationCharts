@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import json
+import re
+
 import pandas as pd
 import pytest
 
@@ -274,3 +277,37 @@ def test_campaign_rate_comparison_labels_render_inside_bars() -> None:
     bar = fig.data[0]
     assert bar.type == "bar"
     assert bar.textposition == "inside"
+
+
+def test_full_base_campaign_report_chart_values_remain_close(tmp_path) -> None:
+    model_score, _, _ = create_simulated_tables(seed=42)
+    scored = model_score.copy()
+    scored["fs_time"] = pd.to_datetime(scored["fs_time"])
+    latest = scored.loc[scored["fs_time"] == scored["fs_time"].max()].copy()
+    campaign_clients = latest[["pt_unified_key"]].drop_duplicates().copy()
+    output = tmp_path / "full_base_campaign_report.html"
+
+    EvaluateModel(
+        output_html_path=output,
+        seed=42,
+        include_campaign_selection=True,
+        campaign_clients=campaign_clients,
+    )
+
+    html = output.read_text(encoding="utf-8")
+    match = re.search(
+        r"const cutoffData = (\[.*?\]);\s*const campaignCutoffData = (\[.*?\]);",
+        html,
+        flags=re.S,
+    )
+    assert match is not None
+
+    top_points = json.loads(match.group(1))
+    campaign_points = json.loads(match.group(2))
+    assert len(top_points) == len(campaign_points) == 100
+
+    max_gain_diff = max(abs(float(t["gain"]) - float(c["gain"])) for t, c in zip(top_points, campaign_points))
+    max_sr_diff = max(abs(float(t["sr"]) - float(c["sr"])) for t, c in zip(top_points, campaign_points))
+
+    assert max_gain_diff <= 1.0
+    assert max_sr_diff <= 1.0

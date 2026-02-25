@@ -33,6 +33,8 @@ Find and fix why campaign-selection bottom charts diverge strongly from top char
 - [x] Update chart trace text placement to inside-bar labels.
 - [x] Re-run pytest and confirm pass for this UI tweak.
 - [x] Update task log/final summary for this UI tweak.
+- [x] Add regression test that validates full-base campaign chart values stay close to top chart values.
+- [x] Re-run pytest and confirm pass for regression guard.
 
 # Architecture Notes
 - Keep `EvaluateModel` API unchanged.
@@ -67,6 +69,8 @@ Find and fix why campaign-selection bottom charts diverge strongly from top char
 - 2026-02-25: QA tests-first added `test_campaign_rate_comparison_labels_render_inside_bars`; red phase failed (`textposition='outside'`).
 - 2026-02-25: Developer updated `_make_campaign_rate_comparison_figure(...)` to use inside labels (`textposition='inside'`, centered).
 - 2026-02-25: Build/Verify UI tweak passed. Targeted test passed and full suite passed (`15 passed`).
+- 2026-02-25: Added report-level regression `test_full_base_campaign_report_chart_values_remain_close` to compare top and campaign chart payloads (`gain`, `sr`) when campaign uses full latest base.
+- 2026-02-25: Regression guard verification passed. Full suite now `16 passed`.
 
 # Final Summary
 Root cause:
@@ -89,3 +93,8 @@ Follow-up:
 UI tweak:
 - Updated “Default Success Rate Comparison” bar labels to render inside each bar.
 - Verification after tweak: `python -m pytest` passed (`15 passed`).
+
+Regression guard:
+- Added a full-base campaign regression test that parses report chart payloads and enforces closeness between top and campaign chart values.
+- Threshold selected: `<= 1.0` percentage point for both gain and cumulative success-rate series.
+- Verification after test addition: `python -m pytest` passed (`16 passed`).
