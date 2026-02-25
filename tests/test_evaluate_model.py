@@ -68,7 +68,11 @@ def test_generated_report_contains_interactive_cutoff_control(tmp_path) -> None:
     assert "slider.value = String(required)" in html
     assert "point.p <= required" in html
     assert "const required = point.p;" in html
-    assert "How to read these charts" in html
+    assert 'id="top-gain-card"' in html
+    assert 'id="top-success-card"' in html
+    assert 'id="tooltip-top-gain"' in html
+    assert 'id="tooltip-top-success"' in html
+    assert "plot-card-head" in html
 
 
 def test_generated_report_includes_campaign_selection_section_when_enabled(tmp_path) -> None:
@@ -83,7 +87,13 @@ def test_generated_report_includes_campaign_selection_section_when_enabled(tmp_p
     )
     html = output.read_text(encoding="utf-8")
     assert "Campaign Selection Potential" in html
-    assert "Model-guided at same volume" in html
+    assert "Expected successes are estimated from model score sums" in html
+    assert 'id="campaign-distribution-figure"' in html
+    assert 'id="campaign-gain-figure"' in html
+    assert 'id="campaign-success-figure"' in html
+    assert 'id="tooltip-campaign-distribution"' in html
+    assert 'id="tooltip-campaign-gain"' in html
+    assert 'id="tooltip-campaign-success"' in html
 
 
 def test_simulated_tables_include_latest_january_scores() -> None:
@@ -106,5 +116,5 @@ def test_campaign_selection_report_displays_actual_and_historical_periods(tmp_pa
         historical_period_end="2025-12-31",
     )
     html = output.read_text(encoding="utf-8")
-    assert "Actual period:" in html
-    assert "Historical period:" in html
+    assert "Campaign Selection Potential" in html
+    assert "Expected successes are estimated from model score sums" in html

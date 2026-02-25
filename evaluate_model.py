@@ -393,6 +393,390 @@ def _make_figure(
     return fig
 
 
+def _make_gain_figure(
+    metrics: pd.DataFrame,
+    default_percentile: int,
+) -> go.Figure:
+    x = metrics["contacted_percentile"]
+    selected_row = metrics.loc[metrics["contacted_percentile"] == default_percentile].iloc[0]
+    selected_gain = float(selected_row["gain_pct"])
+    selected_sr = float(selected_row["cumulative_success_rate_pct"])
+    best_ks_percentile = int(metrics["best_ks_percentile"].iat[0])
+    best_ks_row = metrics.loc[metrics["contacted_percentile"] == best_ks_percentile].iloc[0]
+    best_ks_value = float(best_ks_row["ks_pct"])
+
+    fig = go.Figure()
+    fig.add_trace(
+        go.Scatter(
+            x=x,
+            y=metrics["gain_pct"],
+            mode="lines+markers",
+            name="Model",
+            line={"color": "#0057D9", "width": 3},
+            marker={"size": 4},
+            hovertemplate="Contacted: %{x}%<br>Gain: %{y:.2f}%<extra></extra>",
+        )
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=x,
+            y=metrics["random_baseline_gain_pct"],
+            mode="lines",
+            name="Random",
+            line={"color": "#94A3B8", "width": 1.5, "dash": "dash"},
+            hovertemplate="Contacted: %{x}%<br>Baseline gain: %{y:.2f}%<extra></extra>",
+        )
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=x,
+            y=metrics["ideal_gain_pct"],
+            mode="lines",
+            name="Ideal",
+            line={"color": "#CBD5E1", "width": 1.5, "dash": "dot"},
+            hovertemplate="Contacted: %{x}%<br>Ideal gain: %{y:.2f}%<extra></extra>",
+        )
+    )
+    fig.update_xaxes(
+        title_text="Contacted Population Percentile (%)",
+        range=[1, 100],
+        showline=True,
+        linewidth=1,
+        linecolor="#94A3B8",
+        ticks="outside",
+        tickcolor="#94A3B8",
+        dtick=10,
+    )
+    fig.update_yaxes(
+        title_text="Gain / Share (%)",
+        range=[0, 105],
+        showline=True,
+        linewidth=1,
+        linecolor="#94A3B8",
+        gridcolor="#E2E8F0",
+        zeroline=False,
+    )
+    fig.update_layout(
+        paper_bgcolor="#FFFFFF",
+        plot_bgcolor="#FFFFFF",
+        height=430,
+        margin={"l": 72, "r": 24, "t": 56, "b": 60},
+        hovermode="x unified",
+        legend={
+            "orientation": "h",
+            "yanchor": "bottom",
+            "y": 1.02,
+            "xanchor": "left",
+            "x": 0.0,
+            "font": {"size": 11, "color": "#334155"},
+            "bgcolor": "rgba(255,255,255,0)",
+        },
+        annotations=[
+            dict(
+                x=default_percentile,
+                y=selected_gain,
+                xref="x",
+                yref="y",
+                text=f"Top {default_percentile}% -> SR {selected_sr:.1f}%, Gain {selected_gain:.1f}%",
+                showarrow=True,
+                arrowhead=2,
+                ax=20,
+                ay=-30,
+                bgcolor="rgba(255,255,255,0.94)",
+                bordercolor="#E11D48",
+                borderwidth=1,
+                borderpad=4,
+                font={"size": 11, "color": "#0F172A"},
+            ),
+            dict(
+                x=best_ks_percentile,
+                y=101,
+                xref="x",
+                yref="y",
+                text=f"Optimal cutoff (max KS {best_ks_value:.1f}pp): {best_ks_percentile}%",
+                showarrow=False,
+                bgcolor="rgba(248,250,252,0.95)",
+                bordercolor="#CBD5E1",
+                borderwidth=1,
+                borderpad=4,
+                font={"size": 11, "color": "#334155"},
+            ),
+        ],
+        shapes=[
+            dict(
+                type="line",
+                name="selected_cutoff",
+                xref="x",
+                yref="paper",
+                x0=default_percentile,
+                x1=default_percentile,
+                y0=0.0,
+                y1=1.0,
+                line={"color": "#E11D48", "width": 2.2, "dash": "dot"},
+            ),
+            dict(
+                type="line",
+                name="ks_optimal_split",
+                xref="x",
+                yref="paper",
+                x0=best_ks_percentile,
+                x1=best_ks_percentile,
+                y0=0.0,
+                y1=1.0,
+                line={"color": "#94A3B8", "width": 1.4, "dash": "dash"},
+            ),
+        ],
+        font={"family": "Segoe UI, Arial, sans-serif", "size": 13, "color": "#0F172A"},
+    )
+    return fig
+
+
+def _make_success_rate_figure(
+    metrics: pd.DataFrame,
+    required_cutoff: int,
+) -> go.Figure:
+    fig = go.Figure()
+    x = metrics["contacted_percentile"]
+    fig.add_trace(
+        go.Bar(
+            x=x,
+            y=metrics["cumulative_success_rate_pct"],
+            name="Success Rate",
+            marker={
+                "color": _success_bar_colors(metrics=metrics, required_cutoff=required_cutoff),
+                "line": {"color": "rgba(15, 23, 42, 0.12)", "width": 0.6},
+            },
+            hovertemplate="Contacted: %{x}%<br>Success rate: %{y:.2f}%<extra></extra>",
+        )
+    )
+    y_top = max(5.0, float(metrics["cumulative_success_rate_pct"].max()) * 1.08)
+    fig.update_xaxes(
+        title_text="Contacted Population Percentile (%)",
+        range=[1, 100],
+        showline=True,
+        linewidth=1,
+        linecolor="#94A3B8",
+        ticks="outside",
+        tickcolor="#94A3B8",
+        dtick=10,
+    )
+    fig.update_yaxes(
+        title_text="Success Rate (%)",
+        range=[0, y_top],
+        showline=True,
+        linewidth=1,
+        linecolor="#94A3B8",
+        gridcolor="#E2E8F0",
+        zeroline=False,
+    )
+    fig.update_layout(
+        paper_bgcolor="#FFFFFF",
+        plot_bgcolor="#FFFFFF",
+        height=430,
+        margin={"l": 72, "r": 24, "t": 56, "b": 60},
+        hovermode="x unified",
+        showlegend=False,
+        annotations=[
+            dict(
+                x=required_cutoff,
+                y=max(5.0, float(metrics["cumulative_success_rate_pct"].max()) * 0.86),
+                xref="x",
+                yref="y",
+                text=f"Needed for target SR: {required_cutoff}%",
+                showarrow=False,
+                bgcolor="rgba(255,251,235,0.96)",
+                bordercolor="#D97706",
+                borderwidth=1,
+                borderpad=4,
+                font={"size": 11, "color": "#92400E"},
+            )
+        ],
+        shapes=[
+            dict(
+                type="line",
+                name="required_cutoff",
+                xref="x",
+                yref="paper",
+                x0=required_cutoff,
+                x1=required_cutoff,
+                y0=0.0,
+                y1=1.0,
+                line={"color": "#D97706", "width": 1.8, "dash": "dot"},
+            )
+        ],
+        font={"family": "Segoe UI, Arial, sans-serif", "size": 13, "color": "#0F172A"},
+    )
+    return fig
+
+
+def _prepare_campaign_estimated_performance(
+    latest_model_score: pd.DataFrame,
+    campaign_clients: pd.DataFrame,
+) -> pd.DataFrame:
+    if "pt_unified_key" not in campaign_clients.columns:
+        raise ValueError("campaign_clients must include column: pt_unified_key")
+    required_cols = {"pt_unified_key", "score", "percentile"}
+    missing = required_cols - set(latest_model_score.columns)
+    if missing:
+        raise ValueError(f"model_score is missing required columns for campaign estimation: {sorted(missing)}")
+
+    selected_keys = set(campaign_clients["pt_unified_key"].dropna().astype(str))
+    if not selected_keys:
+        raise ValueError("campaign_clients.pt_unified_key is empty after removing null values.")
+
+    scored = latest_model_score.copy()
+    scored["pt_unified_key"] = scored["pt_unified_key"].astype(str)
+    selected = scored.loc[scored["pt_unified_key"].isin(selected_keys)].copy()
+    if selected.empty:
+        raise ValueError("None of campaign_clients.pt_unified_key matched scored clients.")
+    return selected
+
+
+def _build_estimated_metrics_by_contact_percentile(campaign_scored: pd.DataFrame) -> pd.DataFrame:
+    required_cols = {"pt_unified_key", "score", "percentile"}
+    missing = required_cols - set(campaign_scored.columns)
+    if missing:
+        raise ValueError(f"campaign_scored is missing required columns: {sorted(missing)}")
+
+    scored = campaign_scored.copy()
+    scored["score"] = pd.to_numeric(scored["score"], errors="coerce")
+    if scored["score"].isna().any():
+        raise ValueError("campaign_scored.score contains non-numeric values.")
+    scored["score"] = scored["score"].clip(lower=0.0, upper=1.0)
+    scored = scored.sort_values("score", ascending=False, ignore_index=True)
+
+    n_clients = len(scored)
+    if n_clients == 0:
+        raise ValueError("No campaign-scored clients available to evaluate.")
+
+    scored["cum_successes"] = scored["score"].cumsum()
+    scored["cum_non_successes"] = (1.0 - scored["score"]).cumsum()
+    scored["cum_clients"] = np.arange(1, n_clients + 1)
+
+    total_successes = float(scored["score"].sum())
+    total_non_successes = float(n_clients - total_successes)
+    percentile_marks = np.arange(1, 101)
+    idx = np.ceil(percentile_marks * n_clients / 100).astype(int) - 1
+    points = scored.iloc[idx].copy().reset_index(drop=True)
+
+    points["contacted_percentile"] = percentile_marks
+    points["gain_pct"] = np.where(
+        total_successes > 0.0,
+        points["cum_successes"] / total_successes * 100.0,
+        0.0,
+    )
+    points["cumulative_success_rate_pct"] = points["cum_successes"] / points["cum_clients"] * 100.0
+    points["random_baseline_gain_pct"] = points["contacted_percentile"].astype(float)
+    prevalence_pct = total_successes / n_clients * 100.0
+    points["ideal_gain_pct"] = np.where(
+        prevalence_pct > 0,
+        np.minimum(points["contacted_percentile"] / prevalence_pct * 100.0, 100.0),
+        0.0,
+    )
+    points["non_success_share_pct"] = np.where(
+        total_non_successes > 0.0,
+        points["cum_non_successes"] / total_non_successes * 100.0,
+        0.0,
+    )
+    points["ks_pct"] = points["gain_pct"] - points["non_success_share_pct"]
+    best_ks_percentile = int(points.loc[points["ks_pct"].idxmax(), "contacted_percentile"])
+    points["best_ks_percentile"] = best_ks_percentile
+    points["total_successes"] = total_successes
+    points["total_non_successes"] = total_non_successes
+
+    return points[
+        [
+            "contacted_percentile",
+            "cum_clients",
+            "cum_successes",
+            "cum_non_successes",
+            "gain_pct",
+            "random_baseline_gain_pct",
+            "ideal_gain_pct",
+            "non_success_share_pct",
+            "ks_pct",
+            "best_ks_percentile",
+            "cumulative_success_rate_pct",
+            "total_successes",
+            "total_non_successes",
+        ]
+    ]
+
+
+def _build_campaign_percentile_distribution(
+    latest_model_score: pd.DataFrame,
+    campaign_scored: pd.DataFrame,
+) -> pd.DataFrame:
+    if "percentile" not in latest_model_score.columns:
+        raise ValueError("model_score is missing required column: percentile")
+    if "percentile" not in campaign_scored.columns:
+        raise ValueError("campaign_scored is missing required column: percentile")
+
+    all_counts = latest_model_score.groupby("percentile", as_index=False).size().rename(columns={"size": "all_clients"})
+    selected_counts = (
+        campaign_scored.groupby("percentile", as_index=False).size().rename(columns={"size": "campaign_clients"})
+    )
+    distribution = all_counts.merge(selected_counts, on="percentile", how="left")
+    distribution["campaign_clients"] = distribution["campaign_clients"].fillna(0).astype(int)
+    distribution = distribution.sort_values("percentile", ascending=True, ignore_index=True)
+    return distribution
+
+
+def _make_campaign_distribution_figure(distribution: pd.DataFrame) -> go.Figure:
+    fig = go.Figure()
+    fig.add_trace(
+        go.Bar(
+            x=distribution["percentile"],
+            y=distribution["all_clients"],
+            name="All scored clients",
+            marker={"color": "rgba(148, 163, 184, 0.60)"},
+            hovertemplate="Percentile: %{x}<br>All clients: %{y}<extra></extra>",
+        )
+    )
+    fig.add_trace(
+        go.Bar(
+            x=distribution["percentile"],
+            y=distribution["campaign_clients"],
+            name="Campaign clients",
+            marker={"color": "rgba(0, 87, 217, 0.85)"},
+            hovertemplate="Percentile: %{x}<br>Campaign clients: %{y}<extra></extra>",
+        )
+    )
+    fig.update_layout(
+        barmode="overlay",
+        paper_bgcolor="#FFFFFF",
+        plot_bgcolor="#FFFFFF",
+        height=280,
+        margin={"l": 70, "r": 20, "t": 28, "b": 56},
+        legend={
+            "orientation": "h",
+            "yanchor": "bottom",
+            "y": 1.02,
+            "xanchor": "left",
+            "x": 0.0,
+            "font": {"size": 11, "color": "#334155"},
+        },
+        font={"family": "Segoe UI, Arial, sans-serif", "size": 12, "color": "#0F172A"},
+    )
+    fig.update_xaxes(
+        title_text="Model Score Percentile",
+        dtick=5,
+        showline=True,
+        linewidth=1,
+        linecolor="#94A3B8",
+        tickangle=0,
+    )
+    fig.update_yaxes(
+        title_text="Client Count",
+        rangemode="tozero",
+        showline=True,
+        linewidth=1,
+        linecolor="#94A3B8",
+        gridcolor="#E2E8F0",
+    )
+    return fig
+
+
 def _build_cutoff_summary(metrics: pd.DataFrame, selected_percentile: int) -> dict[str, float | int]:
     row = metrics.loc[metrics["contacted_percentile"] == selected_percentile].iloc[0]
     captured_successes = int(row["cum_successes"])
@@ -702,11 +1086,8 @@ def EvaluateModel(
         metrics.loc[metrics["contacted_percentile"] == selected_percentile, "cumulative_success_rate_pct"].iloc[0]
     )
     required_cutoff = _required_cutoff_for_desired_rate(metrics=metrics, desired_rate=desired_success_rate)
-    figure = _make_figure(
-        metrics=metrics,
-        default_percentile=selected_percentile,
-        desired_success_rate=desired_success_rate,
-    )
+    gain_figure = _make_gain_figure(metrics=metrics, default_percentile=selected_percentile)
+    success_figure = _make_success_rate_figure(metrics=metrics, required_cutoff=required_cutoff)
     summary = _build_cutoff_summary(metrics=metrics, selected_percentile=selected_percentile)
     cutoff_points = [
         {
@@ -726,56 +1107,115 @@ def EvaluateModel(
     ]
     best_ks_percentile = int(metrics["best_ks_percentile"].iat[0])
     campaign_section_html = ""
+    campaign_cutoff_points: list[dict[str, float | int]] = []
+    campaign_best_ks_percentile = selected_percentile
     if include_campaign_selection:
         if campaign_clients is None:
             raise ValueError("campaign_clients must be provided when include_campaign_selection=True.")
-        actual_summary, actual_curve = _build_period_campaign_comparison(
-            model_score=latest_model_score,
-            target_store=target_store,
+        campaign_scored = _prepare_campaign_estimated_performance(
+            latest_model_score=latest_model_score,
             campaign_clients=campaign_clients,
         )
-        historical_scores, historical_period_label = _resolve_historical_scores(
-            model_score=model_score,
-            latest_fs_time=latest_fs_time,
-            historical_period_start=historical_period_start,
-            historical_period_end=historical_period_end,
+        campaign_metrics = _build_estimated_metrics_by_contact_percentile(campaign_scored=campaign_scored)
+        campaign_distribution = _build_campaign_percentile_distribution(
+            latest_model_score=latest_model_score,
+            campaign_scored=campaign_scored,
         )
-        historical_summary, historical_curve = _build_period_campaign_comparison(
-            model_score=historical_scores,
-            target_store=target_store,
-            campaign_clients=campaign_clients,
+        campaign_required_cutoff = _required_cutoff_for_desired_rate(
+            metrics=campaign_metrics,
+            desired_rate=desired_success_rate,
         )
-        actual_period_label = _format_period_label(latest_fs_time, latest_fs_time)
-        campaign_fig = _make_campaign_selection_figure(
-            actual_curve=actual_curve,
-            actual_summary=actual_summary,
-            actual_period_label=actual_period_label,
-            historical_curve=historical_curve,
-            historical_summary=historical_summary,
-            historical_period_label=historical_period_label,
+        campaign_gain_figure = _make_gain_figure(metrics=campaign_metrics, default_percentile=selected_percentile)
+        campaign_success_figure = _make_success_rate_figure(
+            metrics=campaign_metrics,
+            required_cutoff=campaign_required_cutoff,
         )
-        campaign_fig_html = campaign_fig.to_html(full_html=False, include_plotlyjs=False, div_id="campaign-figure")
+        campaign_distribution_figure = _make_campaign_distribution_figure(distribution=campaign_distribution)
+
+        campaign_distribution_html = campaign_distribution_figure.to_html(
+            full_html=False,
+            include_plotlyjs=False,
+            div_id="campaign-distribution-figure",
+        )
+        campaign_gain_html = campaign_gain_figure.to_html(
+            full_html=False,
+            include_plotlyjs=False,
+            div_id="campaign-gain-figure",
+        )
+        campaign_success_html = campaign_success_figure.to_html(
+            full_html=False,
+            include_plotlyjs=False,
+            div_id="campaign-success-figure",
+        )
+        campaign_cutoff_points = [
+            {
+                "p": int(row["contacted_percentile"]),
+                "clients": int(row["cum_clients"]),
+                "gain": float(row["gain_pct"]),
+                "sr": float(row["cumulative_success_rate_pct"]),
+                "captured": float(row["cum_successes"]),
+                "total": float(row["total_successes"]),
+                "captured_pct": (
+                    float(row["cum_successes"]) / float(row["total_successes"]) * 100.0
+                    if float(row["total_successes"]) > 0
+                    else 0.0
+                ),
+            }
+            for _, row in campaign_metrics.iterrows()
+        ]
+        campaign_best_ks_percentile = int(campaign_metrics["best_ks_percentile"].iat[0])
         campaign_section_html = f"""
     <section class="campaign-section">
       <h2>Campaign Selection Potential</h2>
       <p>
-        This section benchmarks your selected client list against model-guided targeting at the same campaign size
-        using newest actual model scores and a historical score period.
+        Expected successes are estimated from model score sums on the campaign filtered base.
       </p>
-      <p><strong>Actual period:</strong> {actual_period_label} | <strong>Historical period:</strong> {historical_period_label}</p>
-      <div class="campaign-kpis">
-        <div class="campaign-kpi"><strong>Your selection SR (actual)</strong><span>{actual_summary["selected_rate_pct"]:.1f}%</span></div>
-        <div class="campaign-kpi"><strong>Your selection SR (historical)</strong><span>{historical_summary["selected_rate_pct"]:.1f}%</span></div>
-        <div class="campaign-kpi"><strong>Model-guided at same volume (actual)</strong><span>{actual_summary["model_top_rate_pct"]:.1f}%</span></div>
+      <div class="plot-card campaign-wide-card" id="campaign-distribution-card">
+        <div class="plot-card-head">
+          <h3>Campaign Client Distribution by Score Percentile</h3>
+          <div class="tooltip-wrap">
+            <button class="tooltip-btn" type="button" aria-describedby="tooltip-campaign-distribution">?</button>
+            <div class="tooltip-body" id="tooltip-campaign-distribution">
+              Gray bars are all scored clients; blue bars are campaign clients in each percentile.
+            </div>
+          </div>
+        </div>
+        {campaign_distribution_html}
       </div>
-      {campaign_fig_html}
+      <div class="chart-grid chart-grid-2">
+        <div class="plot-card" id="campaign-gain-card">
+          <div class="plot-card-head">
+            <h3>Campaign Base Cumulative Gain</h3>
+            <div class="tooltip-wrap">
+              <button class="tooltip-btn" type="button" aria-describedby="tooltip-campaign-gain">?</button>
+              <div class="tooltip-body" id="tooltip-campaign-gain">
+                Gain on campaign clients only. Expected successes are based on cumulative predicted score.
+              </div>
+            </div>
+          </div>
+          {campaign_gain_html}
+        </div>
+        <div class="plot-card" id="campaign-success-card">
+          <div class="plot-card-head">
+            <h3>Campaign Base Cumulative Success Rate</h3>
+            <div class="tooltip-wrap">
+              <button class="tooltip-btn" type="button" aria-describedby="tooltip-campaign-success">?</button>
+              <div class="tooltip-body" id="tooltip-campaign-success">
+                Bars and cutoff line are computed on the campaign-only population.
+              </div>
+            </div>
+          </div>
+          {campaign_success_html}
+        </div>
+      </div>
     </section>
 """
 
     output_path = Path(output_html_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    fig_html = figure.to_html(full_html=False, include_plotlyjs=True, div_id="model-figure")
+    top_gain_html = gain_figure.to_html(full_html=False, include_plotlyjs=True, div_id="top-gain-figure")
+    top_success_html = success_figure.to_html(full_html=False, include_plotlyjs=False, div_id="top-success-figure")
     html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -809,50 +1249,90 @@ def EvaluateModel(
       padding: 26px 24px 14px 24px;
     }}
     .content-grid {{
+      display: block;
+    }}
+    .chart-grid {{
       display: grid;
-      grid-template-columns: minmax(0, 1.15fr) minmax(360px, 1fr);
-      gap: 16px;
+      gap: 12px;
       align-items: stretch;
+    }}
+    .chart-grid-2 {{
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }}
+    .plot-card {{
+      border: 1px solid var(--line-soft);
+      border-radius: 12px;
+      background: #FFFFFF;
+      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+      padding: 8px 10px 6px 10px;
+      min-width: 0;
+    }}
+    .campaign-wide-card {{
+      margin: 8px 0 12px 0;
+    }}
+    .plot-card-head {{
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 4px 6px 0 6px;
+    }}
+    .plot-card-head h3 {{
+      margin: 0;
+      font-size: 16px;
+      color: var(--text-main);
+      font-weight: 700;
+    }}
+    .tooltip-wrap {{
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+    }}
+    .tooltip-btn {{
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: 1px solid #CBD5E1;
+      background: #F8FAFC;
+      color: #0F172A;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: default;
+      line-height: 1;
+      padding: 0;
+    }}
+    .tooltip-body {{
+      position: absolute;
+      right: 0;
+      top: 30px;
+      min-width: 260px;
+      max-width: 320px;
+      background: #0F172A;
+      color: #F8FAFC;
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 12px;
+      line-height: 1.35;
+      display: none;
+      z-index: 12;
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.3);
+    }}
+    .tooltip-wrap:hover .tooltip-body {{
+      display: block;
+    }}
+    .tooltip-wrap:focus-within .tooltip-body {{
+      display: block;
     }}
     .figure-panel {{
       min-width: 0;
     }}
     .guide-panel {{
-      border: 1px solid var(--line-soft);
-      border-radius: 12px;
-      background: #FAFCFF;
-      padding: 14px 14px 12px 14px;
-      display: grid;
-      grid-template-rows: 1fr 1fr;
-      gap: 12px;
-      min-height: 940px;
+      display: none;
     }}
-    .guide-section {{
-      border: 1px solid #E6EEF8;
-      border-radius: 10px;
-      background: #FFFFFF;
-      padding: 12px 11px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-    }}
-    .guide-panel h3 {{
-      margin: 0 0 8px 0;
-      font-size: 16px;
-      color: var(--text-main);
-    }}
-    .guide-panel p {{
-      margin: 0 0 10px 0;
-      font-size: 13px;
-      color: var(--text-muted);
-      line-height: 1.45;
-    }}
-    .guide-section strong {{
-      color: var(--text-main);
-      margin-top: 4px;
-      margin-bottom: 2px;
-      font-size: 13px;
-      display: block;
+    .header {{
+      border-bottom: 1px solid var(--line-soft);
+      padding-bottom: 12px;
+      gap: 16px;
     }}
     .header {{
       border-bottom: 1px solid var(--line-soft);
@@ -967,38 +1447,9 @@ def EvaluateModel(
       font-size: 22px;
       color: var(--text-main);
     }}
-    .campaign-kpis {{
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 8px;
-      margin: 8px 0 8px 0;
-    }}
-    .campaign-kpi {{
-      border: 1px solid var(--line-soft);
-      border-radius: 8px;
-      padding: 8px 10px;
-      background: #FCFEFF;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 13px;
-      color: var(--text-muted);
-    }}
-    .campaign-kpi strong {{
-      color: var(--text-main);
-      font-weight: 600;
-    }}
-    .campaign-kpi span {{
-      color: #1D4ED8;
-      font-weight: 700;
-    }}
     @media (max-width: 1100px) {{
-      .content-grid {{
+      .chart-grid-2 {{
         grid-template-columns: 1fr;
-      }}
-      .guide-panel {{
-        min-height: auto;
-        grid-template-rows: auto;
       }}
     }}
   </style>
@@ -1008,12 +1459,8 @@ def EvaluateModel(
     <div class="header">
       <h1>Model Performance Evaluation</h1>
       <p>
-        Cumulative gain and cumulative success rate
+        Cumulative gain and cumulative success rate with synchronized campaign scenario views.
       </p>
-      <div class="subtitle">Presentation view with selected and optimal cutoff markers.</div>
-      <div class="meta">
-        The dashed vertical marker indicates the <span class="accent">optimal cutoff by maximum KS separation</span>.
-      </div>
     </div>
     <div class="kpis">
       <div class="kpi">
@@ -1050,62 +1497,54 @@ def EvaluateModel(
       <span id="required-cutoff-value">Required cutoff: {required_cutoff}%</span>
     </div>
     <div class="content-grid">
-      <div class="figure-panel">
-        {fig_html}
-        <div class="footnote">
-          Definitions: Gain = cumulative share of all successes captured up to the selected percentile.
-          Success rate = cumulative successes divided by cumulative contacted clients.
-          Success is defined as an observed event from scoring time through one calendar month.
+      <div class="chart-grid chart-grid-2">
+        <div class="plot-card" id="top-gain-card">
+          <div class="plot-card-head">
+            <h3>Cumulative Gain Chart</h3>
+            <div class="tooltip-wrap">
+              <button class="tooltip-btn" type="button" aria-describedby="tooltip-top-gain">?</button>
+              <div class="tooltip-body" id="tooltip-top-gain">
+                Gain shows the cumulative share of all successes captured up to each contact percentile.
+                Use the selected cutoff marker to balance campaign size and captured potential.
+              </div>
+            </div>
+          </div>
+          {top_gain_html}
+        </div>
+        <div class="plot-card" id="top-success-card">
+          <div class="plot-card-head">
+            <h3>Cumulative Success Rate Chart</h3>
+            <div class="tooltip-wrap">
+              <button class="tooltip-btn" type="button" aria-describedby="tooltip-top-success">?</button>
+              <div class="tooltip-body" id="tooltip-top-success">
+                The desired success-rate slider selects the largest cutoff that still keeps cumulative
+                success rate at or above your target.
+              </div>
+            </div>
+          </div>
+          {top_success_html}
         </div>
       </div>
-      <aside class="guide-panel">
-        <section class="guide-section">
-          <h3>How to read these charts: top chart</h3>
-          <p>
-            The gain chart answers: <span class="accent">"How much of all potential successes will we capture?"</span>
-            at each targeting depth.
-          </p>
-          <strong>Model vs baselines</strong>
-          <p>
-            Blue above gray means model ranking adds value over random outreach. Earlier separation means
-            better prioritization.
-          </p>
-          <strong>Business decision</strong>
-          <p>
-            Use the selected cutoff line to balance campaign size vs captured success share.
-          </p>
-        </section>
-        <section class="guide-section">
-          <h3>How to read the bottom chart</h3>
-          <p>
-            Bars show cumulative success rate by cutoff depth. This indicates expected conversion quality
-            in the contacted population.
-          </p>
-          <strong>Desired success rate control</strong>
-          <p>
-            Set a target rate and use the reported required cutoff to choose the largest audience
-            that still meets your quality target.
-          </p>
-          <strong>Bar colors</strong>
-          <p>
-            Blue bars are inside the chosen percentile range for your desired success rate.
-            Gray-shadow bars are outside the chosen range.
-          </p>
-        </section>
-      </aside>
+      <div class="footnote">
+        Definitions: Gain = cumulative share of all successes captured up to the selected percentile.
+        Success rate = cumulative successes divided by cumulative contacted clients.
+        Success is defined as an observed event from scoring time through one calendar month.
+      </div>
     </div>
     {campaign_section_html}
   </div>
-  <script>
+    <script>
     const cutoffData = {json.dumps(cutoff_points)};
+    const campaignCutoffData = {json.dumps(campaign_cutoff_points)};
     const bestKsPercentile = {best_ks_percentile};
+    const campaignBestKsPercentile = {campaign_best_ks_percentile};
 
     function formatInt(x) {{
       return Number(x).toLocaleString("en-US");
     }}
 
-    function pointFor(p) {{
-      return cutoffData[p - 1];
+    function pointFor(p, points) {{
+      return points[p - 1];
     }}
 
     function updateKpis(point) {{
@@ -1117,9 +1556,9 @@ def EvaluateModel(
       document.getElementById("cutoff-value").textContent = `${{point.p}}%`;
     }}
 
-    function requiredCutoffForDesired(desiredRate) {{
+    function requiredCutoffForDesired(desiredRate, points) {{
       let required = 1;
-      for (const point of cutoffData) {{
+      for (const point of points) {{
         if (point.sr >= desiredRate) {{
           required = point.p;
         }}
@@ -1134,58 +1573,76 @@ def EvaluateModel(
       return "rgba(148,163,184,0.28)";
     }}
 
-    function updateDesiredRateUi(desiredRate, forcedRequired = null) {{
-      const required = forcedRequired === null ? requiredCutoffForDesired(desiredRate) : forcedRequired;
-      document.getElementById("desired-rate-value").textContent = `${{desiredRate.toFixed(1)}}%`;
-      document.getElementById("required-cutoff-value").textContent = `Required cutoff: ${{required}}%`;
-
-      const gd = document.getElementById("model-figure");
-      if (!gd || !gd.layout || !gd.layout.annotations || gd.layout.annotations.length < 5) {{
-        return false;
-      }}
-      const colors = cutoffData.map((point) => barColorForRequired(point, required));
-      Plotly.restyle(gd, {{
-        "marker.color": [colors]
-      }}, [3]);
-      Plotly.relayout(gd, {{
-        "shapes[2].x0": required,
-        "shapes[2].x1": required,
-        "annotations[4].x": required,
-        "annotations[4].text": `Needed for target SR: ${{required}}%`
-      }});
-      return true;
-    }}
-
-    function updateFigure(point) {{
-      const gd = document.getElementById("model-figure");
-      if (!gd || !gd.layout || !gd.layout.annotations || gd.layout.annotations.length < 5) {{
+    function updateGainFigure(divId, point, ksPercentile) {{
+      const gd = document.getElementById(divId);
+      if (!gd || !gd.layout || !gd.layout.shapes || gd.layout.shapes.length < 2) {{
         return false;
       }}
       Plotly.relayout(gd, {{
         "shapes[0].x0": point.p,
         "shapes[0].x1": point.p,
-        "annotations[2].x": point.p,
-        "annotations[2].y": point.gain,
-        "annotations[2].text": `Top ${{point.p}}% -> SR ${{point.sr.toFixed(1)}}%, Gain ${{point.gain.toFixed(1)}}%`,
-        "annotations[3].x": bestKsPercentile
+        "annotations[0].x": point.p,
+        "annotations[0].y": point.gain,
+        "annotations[0].text": `Top ${{point.p}}% -> SR ${{point.sr.toFixed(1)}}%, Gain ${{point.gain.toFixed(1)}}%`,
+        "annotations[1].x": ksPercentile
       }});
       return true;
     }}
 
+    function updateSuccessFigure(divId, points, required) {{
+      const gd = document.getElementById(divId);
+      if (!gd || !gd.layout || !gd.layout.shapes || gd.layout.shapes.length < 1) {{
+        return false;
+      }}
+      const colors = points.map((point) => {{
+        if (point.p <= required) {{
+          return "rgba(0,87,217,0.80)";
+        }}
+        return "rgba(148,163,184,0.28)";
+      }});
+      Plotly.restyle(gd, {{
+        "marker.color": [colors]
+      }}, [0]);
+      Plotly.relayout(gd, {{
+        "shapes[0].x0": required,
+        "shapes[0].x1": required,
+        "annotations[0].x": required,
+        "annotations[0].text": `Needed for target SR: ${{required}}%`
+      }});
+      return true;
+    }}
+
+    function updateDesiredRateUi(desiredRate, forcedRequired = null) {{
+      const required = forcedRequired === null ? requiredCutoffForDesired(desiredRate, cutoffData) : forcedRequired;
+      document.getElementById("desired-rate-value").textContent = `${{desiredRate.toFixed(1)}}%`;
+      document.getElementById("required-cutoff-value").textContent = `Required cutoff: ${{required}}%`;
+      const okTop = updateSuccessFigure("top-success-figure", cutoffData, required);
+      const okCampaign = campaignCutoffData.length > 0
+        ? updateSuccessFigure("campaign-success-figure", campaignCutoffData, required)
+        : true;
+      return okTop && okCampaign;
+    }}
+
     function applyCutoff(percentile) {{
-      const point = pointFor(percentile);
+      const point = pointFor(percentile, cutoffData);
       if (!point) {{
         return;
       }}
       const required = point.p;
       desiredRateSlider.value = point.sr.toFixed(1);
       updateKpis(point);
-      updateFigure(point);
+      updateGainFigure("top-gain-figure", point, bestKsPercentile);
+      if (campaignCutoffData.length > 0) {{
+        const campaignPoint = pointFor(percentile, campaignCutoffData);
+        if (campaignPoint) {{
+          updateGainFigure("campaign-gain-figure", campaignPoint, campaignBestKsPercentile);
+        }}
+      }}
       updateDesiredRateUi(Number(desiredRateSlider.value), required);
     }}
 
     function applyDesiredRate(desiredRate) {{
-      const required = requiredCutoffForDesired(desiredRate);
+      const required = requiredCutoffForDesired(desiredRate, cutoffData);
       slider.value = String(required);
       updateDesiredRateUi(desiredRate);
       applyCutoff(required);
@@ -1202,7 +1659,8 @@ def EvaluateModel(
 
     let retries = 0;
     const init = () => {{
-      const ok = updateFigure(pointFor(Number(slider.value))) && updateDesiredRateUi(Number(desiredRateSlider.value));
+      const ok = updateGainFigure("top-gain-figure", pointFor(Number(slider.value), cutoffData), bestKsPercentile)
+        && updateDesiredRateUi(Number(desiredRateSlider.value));
       applyCutoff(Number(slider.value));
       if (!ok && retries < 20) {{
         retries += 1;
