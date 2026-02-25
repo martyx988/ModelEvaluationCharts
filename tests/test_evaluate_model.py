@@ -43,10 +43,7 @@ def test_figure_has_additional_gain_and_ks_traces() -> None:
     assert "Random Baseline" in trace_names
     assert "Ideal Gain" in trace_names
     assert "Cumulative Non-Success Share" in trace_names
-    assert "KS" in trace_names
-
-    ks_trace = next(trace for trace in figure.data if trace.name == "KS")
-    assert ks_trace.yaxis == "y2"
+    assert "KS" not in trace_names
 
     layout_dict = figure.to_plotly_json().get("layout", {})
     shapes = layout_dict.get("shapes", [])
