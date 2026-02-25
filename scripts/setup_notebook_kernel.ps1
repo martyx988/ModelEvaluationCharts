@@ -13,8 +13,8 @@ if (-not (Test-Path $venvPython)) {
 Write-Host "Installing notebook dependencies into .venv from requirements-notebook.txt..."
 & $venvPython -m pip install -r requirements-notebook.txt
 
-Write-Host "Registering Jupyter kernel: modelevaluationcharts-venv..."
-& $venvPython -m ipykernel install --user --name modelevaluationcharts-venv --display-name "Python (ModelEvaluationCharts .venv)"
+Write-Host "Registering Jupyter kernel: modelevalcharts-local..."
+& $venvPython -m ipykernel install --user --name modelevalcharts-local --display-name "ModelEvaluationCharts (LOCAL .venv)"
 
 Write-Host "Installed kernels:"
 & $venvPython -m jupyter kernelspec list
