@@ -88,7 +88,7 @@ def test_gain_figure_uses_soft_grid_fill_and_refined_legend() -> None:
     trace_names = [trace.name for trace in figure.data]
     assert "Model" in trace_names
     assert "Ideal" in trace_names
-    assert any(getattr(trace, "fill", None) == "tozeroy" for trace in figure.data)
+    assert not any(getattr(trace, "fill", None) == "tozeroy" for trace in figure.data)
 
     ideal_trace = next(trace for trace in figure.data if trace.name == "Ideal")
     assert ideal_trace.line.dash == "dot"
@@ -96,8 +96,8 @@ def test_gain_figure_uses_soft_grid_fill_and_refined_legend() -> None:
     layout = figure.layout
     assert layout.xaxis.gridcolor == "rgba(255, 255, 255, 0.05)"
     assert layout.yaxis.gridcolor == "rgba(255, 255, 255, 0.05)"
-    assert layout.legend.x > 0.8
-    assert layout.legend.y > 0.95
+    assert 0.35 <= layout.legend.x <= 0.65
+    assert layout.legend.y > 1.0
     assert layout.xaxis.tickfont.color == "#919EAB"
     assert layout.yaxis.tickfont.color == "#919EAB"
 
@@ -150,6 +150,7 @@ def test_generated_report_contains_gain_chart_polish_hooks(tmp_path) -> None:
     assert "applyGainChartEnhancements" in html
     assert "rgba(255, 255, 255, 0.05)" in html
     assert "border-left: 2px solid #ff00ff" in html
+    assert "backdrop-filter: blur(10px)" in html
 
 
 def test_generated_report_contains_dark_neon_shell_palette(tmp_path) -> None:

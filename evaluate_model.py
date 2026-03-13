@@ -705,21 +705,8 @@ def _make_gain_figure(
             x=x,
             y=metrics["gain_pct"],
             mode="lines",
-            name="Model Area",
-            line={"color": "rgba(0,0,0,0)", "width": 0},
-            fill="tozeroy",
-            fillcolor="rgba(0, 229, 255, 0.015)",
-            hoverinfo="skip",
-            showlegend=False,
-        )
-    )
-    fig.add_trace(
-        go.Scatter(
-            x=x,
-            y=metrics["gain_pct"],
-            mode="lines",
             name="Model Glow",
-            line={"color": "rgba(0, 229, 255, 0.18)", "width": 7},
+            line={"color": "rgba(0, 229, 255, 0.16)", "width": 8},
             hoverinfo="skip",
             showlegend=False,
         )
@@ -791,9 +778,9 @@ def _make_gain_figure(
         legend={
             "orientation": "h",
             "yanchor": "bottom",
-            "y": 1.02,
-            "xanchor": "right",
-            "x": 1.0,
+            "y": 1.04,
+            "xanchor": "center",
+            "x": 0.5,
             "font": {"size": 11, "color": theme["text_muted"]},
             "bgcolor": theme["modebar_bg"],
         },
@@ -806,7 +793,9 @@ def _make_gain_figure(
                 text=(
                     "<span style='display:inline-block;padding:6px 10px 6px 10px;"
                     "border-left: 2px solid #ff00ff;"
-                    "background: rgba(22, 28, 36, 0.52);'>"
+                    "background: rgba(46, 34, 59, 0.28);"
+                    "backdrop-filter: blur(10px);"
+                    "border-radius: 6px;'>"
                     f"{chart_text['annot_top'].format(p=default_percentile, sr=selected_sr, gain=selected_gain)}"
                     "</span>"
                 ),
@@ -826,7 +815,9 @@ def _make_gain_figure(
                 text=(
                     "<span style='display:inline-block;padding:6px 10px 6px 10px;"
                     "border-left: 2px solid #ff00ff;"
-                    "background: rgba(22, 28, 36, 0.40);'>"
+                    "background: rgba(38, 55, 63, 0.30);"
+                    "backdrop-filter: blur(10px);"
+                    "border-radius: 6px;'>"
                     f"{chart_text['annot_ks'].format(ks=best_ks_value, p=best_ks_percentile)}"
                     "</span>"
                 ),
@@ -2193,45 +2184,6 @@ def EvaluateModel(
       return points[p - 1];
     }}
 
-    function ensureGainGradient(svg, gradientId) {{
-      const ns = "http://www.w3.org/2000/svg";
-      let defs = svg.querySelector("defs");
-      if (!defs) {{
-        defs = document.createElementNS(ns, "defs");
-        svg.insertBefore(defs, svg.firstChild);
-      }}
-      let gradient = svg.querySelector(`#${{gradientId}}`);
-      if (!gradient) {{
-        gradient = document.createElementNS(ns, "linearGradient");
-        gradient.setAttribute("id", gradientId);
-        gradient.setAttribute("x1", "0%");
-        gradient.setAttribute("x2", "0%");
-        gradient.setAttribute("y1", "0%");
-        gradient.setAttribute("y2", "100%");
-
-        const stopTop = document.createElementNS(ns, "stop");
-        stopTop.setAttribute("offset", "0%");
-        stopTop.setAttribute("stop-color", "#00e5ff");
-        stopTop.setAttribute("stop-opacity", "0.04");
-
-        const stopMiddle = document.createElementNS(ns, "stop");
-        stopMiddle.setAttribute("offset", "45%");
-        stopMiddle.setAttribute("stop-color", "#00e5ff");
-        stopMiddle.setAttribute("stop-opacity", "0.015");
-
-        const stopBottom = document.createElementNS(ns, "stop");
-        stopBottom.setAttribute("offset", "100%");
-        stopBottom.setAttribute("stop-color", "#00e5ff");
-        stopBottom.setAttribute("stop-opacity", "0");
-
-        gradient.appendChild(stopTop);
-        gradient.appendChild(stopMiddle);
-        gradient.appendChild(stopBottom);
-        defs.appendChild(gradient);
-      }}
-      return gradient;
-    }}
-
     function applyGainChartEnhancements(divId) {{
       const gd = document.getElementById(divId);
       if (!gd) {{
@@ -2239,24 +2191,15 @@ def EvaluateModel(
       }}
       const svg = gd.querySelector("svg.main-svg");
       const traces = gd.querySelectorAll(".scatterlayer .trace");
-      if (!svg || traces.length < 5) {{
+      if (!svg || traces.length < 4) {{
         return false;
       }}
-      const gradientId = `${{divId}}-gain-gradient`;
-      ensureGainGradient(svg, gradientId);
-
-      const fillPath = traces[0].querySelector("path.js-fill");
-      if (fillPath) {{
-        fillPath.setAttribute("fill", `url(#${{gradientId}})`);
-        fillPath.style.fillOpacity = "1";
-      }}
-
-      const glowLine = traces[1].querySelector("path.js-line");
+      const glowLine = traces[0].querySelector("path.js-line");
       if (glowLine) {{
         glowLine.style.filter = "drop-shadow(0 0 5px #00e5ff)";
       }}
 
-      const modelLine = traces[2].querySelector("path.js-line");
+      const modelLine = traces[1].querySelector("path.js-line");
       if (modelLine) {{
         modelLine.style.filter = "drop-shadow(0 0 5px #00e5ff)";
         modelLine.style.strokeLinecap = "round";
