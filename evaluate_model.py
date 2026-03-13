@@ -375,6 +375,36 @@ def _resolve_chart_text(language: str) -> dict[str, str]:
     return texts[language]
 
 
+def _dashboard_theme() -> dict[str, str]:
+    return {
+        "body_bg_top": "#10233B",
+        "body_bg_bottom": "#132943",
+        "panel": "#1B3554",
+        "card_bg": "#203B5D",
+        "card_bg_soft": "#1E3758",
+        "text_main": "#E6F1FF",
+        "text_muted": "#9FB6D8",
+        "line_soft": "rgba(120, 161, 207, 0.24)",
+        "line_strong": "rgba(135, 180, 235, 0.44)",
+        "color_1": "#ff00ff",
+        "color_2": "#00e5ff",
+        "accent_cyan": "#00E5FF",
+        "accent_blue": "#35A6FF",
+        "accent_magenta": "#FF4BD8",
+        "accent_violet": "#9A5CFF",
+        "axis_line": "rgba(153, 187, 235, 0.48)",
+        "grid": "rgba(122, 159, 205, 0.16)",
+        "annotation_bg": "rgba(11, 23, 39, 0.92)",
+        "annotation_alt_bg": "rgba(20, 35, 57, 0.92)",
+        "annotation_text": "#E6F1FF",
+        "annotation_muted": "#BED2EE",
+        "plot_bg": "#1B3554",
+        "plot_bg_alt": "#203B5D",
+        "modebar_bg": "rgba(27, 53, 84, 0.0)",
+        "bar_dim": "rgba(143, 165, 196, 0.32)",
+    }
+
+
 def _required_cutoff_for_desired_rate(metrics: pd.DataFrame, desired_rate: float) -> int:
     eligible = metrics.loc[metrics["cumulative_success_rate_pct"] >= desired_rate, "contacted_percentile"]
     if eligible.empty:
@@ -383,12 +413,13 @@ def _required_cutoff_for_desired_rate(metrics: pd.DataFrame, desired_rate: float
 
 
 def _success_bar_colors(metrics: pd.DataFrame, required_cutoff: int) -> list[str]:
+    theme = _dashboard_theme()
     colors: list[str] = []
     for percentile in metrics["contacted_percentile"].astype(int):
         if percentile <= required_cutoff:
-            colors.append("rgba(0, 87, 217, 0.80)")
+            colors.append(theme["accent_cyan"])
         else:
-            colors.append("rgba(148, 163, 184, 0.28)")
+            colors.append(theme["bar_dim"])
     return colors
 
 
@@ -419,6 +450,7 @@ def _make_figure(
 ) -> go.Figure:
     if chart_text is None:
         chart_text = _resolve_chart_text("en")
+    theme = _dashboard_theme()
     if desired_success_rate is None:
         desired_success_rate = float(
             metrics.loc[metrics["contacted_percentile"] == default_percentile, "cumulative_success_rate_pct"].iloc[0]
@@ -442,7 +474,7 @@ def _make_figure(
             y=metrics["gain_pct"],
             mode="lines+markers",
             name=chart_text["trace_model"],
-            line={"color": "#0057D9", "width": 3},
+            line={"color": theme["accent_cyan"], "width": 3},
             marker={"size": 4},
             hovertemplate=chart_text["hover_gain"],
         ),
@@ -455,7 +487,7 @@ def _make_figure(
             y=metrics["random_baseline_gain_pct"],
             mode="lines",
             name=chart_text["trace_random"],
-            line={"color": "#94A3B8", "width": 1.5, "dash": "dash"},
+            line={"color": theme["text_muted"], "width": 1.5, "dash": "dash"},
             hovertemplate=chart_text["hover_baseline_gain"],
         ),
         row=1,
@@ -467,7 +499,7 @@ def _make_figure(
             y=metrics["ideal_gain_pct"],
             mode="lines",
             name=chart_text["trace_ideal"],
-            line={"color": "#CBD5E1", "width": 1.5, "dash": "dot"},
+            line={"color": theme["accent_violet"], "width": 1.5, "dash": "dot"},
             hovertemplate=chart_text["hover_ideal_gain"],
         ),
         row=1,
@@ -480,7 +512,7 @@ def _make_figure(
             y=selected_sr_segment,
             mode="lines",
             name=chart_text["trace_success_selected"],
-            line={"color": "#0057D9", "width": 3},
+            line={"color": theme["accent_cyan"], "width": 3},
             hovertemplate=chart_text["hover_success_rate"],
         ),
         row=2,
@@ -492,7 +524,7 @@ def _make_figure(
             y=outside_sr_segment,
             mode="lines",
             name=chart_text["trace_success_outside"],
-            line={"color": "rgba(148,163,184,0.48)", "width": 2},
+            line={"color": theme["bar_dim"], "width": 2},
             hovertemplate=chart_text["hover_success_rate"],
         ),
         row=2,
@@ -506,9 +538,9 @@ def _make_figure(
         range=[1, 100],
         showline=True,
         linewidth=1,
-        linecolor="#94A3B8",
+        linecolor=theme["axis_line"],
         ticks="outside",
-        tickcolor="#94A3B8",
+        tickcolor=theme["axis_line"],
         dtick=10,
     )
     fig.update_xaxes(showticklabels=False, row=1, col=1)
@@ -519,8 +551,8 @@ def _make_figure(
         range=[0, 105],
         showline=True,
         linewidth=1,
-        linecolor="#94A3B8",
-        gridcolor="#E2E8F0",
+        linecolor=theme["axis_line"],
+        gridcolor=theme["grid"],
     )
     fig.update_yaxes(zeroline=False)
     fig.update_yaxes(
@@ -530,8 +562,8 @@ def _make_figure(
         range=[0, max(5.0, float(metrics["cumulative_success_rate_pct"].max()) * 1.08)],
         showline=True,
         linewidth=1,
-        linecolor="#94A3B8",
-        gridcolor="#E2E8F0",
+        linecolor=theme["axis_line"],
+        gridcolor=theme["grid"],
     )
 
     base_annotations = list(fig.layout.annotations) if fig.layout.annotations else []
@@ -550,11 +582,11 @@ def _make_figure(
             arrowhead=2,
             ax=26,
             ay=-34,
-            bgcolor="rgba(255,255,255,0.94)",
-            bordercolor="#E11D48",
+            bgcolor=theme["annotation_bg"],
+            bordercolor=theme["accent_magenta"],
             borderwidth=1,
             borderpad=4,
-            font={"size": 11, "color": "#0F172A"},
+            font={"size": 11, "color": theme["annotation_text"]},
         ),
         dict(
             x=best_ks_percentile,
@@ -563,11 +595,11 @@ def _make_figure(
             yref="y",
             text=chart_text["annot_ks"].format(ks=best_ks_value, p=best_ks_percentile),
             showarrow=False,
-            bgcolor="rgba(248,250,252,0.95)",
-            bordercolor="#CBD5E1",
+            bgcolor=theme["annotation_alt_bg"],
+            bordercolor=theme["accent_violet"],
             borderwidth=1,
             borderpad=4,
-            font={"size": 11, "color": "#334155"},
+            font={"size": 11, "color": theme["annotation_muted"]},
         ),
         dict(
             x=required_cutoff,
@@ -576,11 +608,11 @@ def _make_figure(
             yref="y2",
             text=chart_text["annot_required"].format(p=required_cutoff),
             showarrow=False,
-            bgcolor="rgba(255,251,235,0.96)",
-            bordercolor="#D97706",
+            bgcolor=theme["annotation_bg"],
+            bordercolor=theme["accent_cyan"],
             borderwidth=1,
             borderpad=4,
-            font={"size": 11, "color": "#92400E"},
+            font={"size": 11, "color": theme["annotation_text"]},
         ),
     ]
     shapes = [
@@ -593,7 +625,7 @@ def _make_figure(
             x1=default_percentile,
             y0=0.0,
             y1=1.0,
-            line={"color": "#E11D48", "width": 2.2, "dash": "dot"},
+            line={"color": theme["accent_magenta"], "width": 2.2, "dash": "dot"},
         ),
         dict(
             type="line",
@@ -604,7 +636,7 @@ def _make_figure(
             x1=best_ks_percentile,
             y0=0.0,
             y1=1.0,
-            line={"color": "#94A3B8", "width": 1.4, "dash": "dash"},
+            line={"color": theme["accent_violet"], "width": 1.4, "dash": "dash"},
         ),
         dict(
             type="line",
@@ -615,18 +647,18 @@ def _make_figure(
             x1=required_cutoff,
             y0=0.0,
             y1=1.0,
-            line={"color": "#D97706", "width": 1.8, "dash": "dot"},
+            line={"color": theme["accent_cyan"], "width": 1.8, "dash": "dot"},
         ),
     ]
 
     fig.update_layout(
-        paper_bgcolor="#FFFFFF",
-        plot_bgcolor="#FFFFFF",
+        paper_bgcolor=theme["plot_bg"],
+        plot_bgcolor=theme["plot_bg"],
         title={
             "text": chart_text["figure_title"],
             "x": 0.5,
             "xanchor": "center",
-            "font": {"size": 28, "color": "#0F172A", "family": "Segoe UI, Arial, sans-serif"},
+            "font": {"size": 28, "color": theme["text_main"], "family": "Segoe UI, Arial, sans-serif"},
         },
         width=680,
         height=940,
@@ -638,13 +670,14 @@ def _make_figure(
             "y": -0.06,
             "xanchor": "center",
             "x": 0.5,
-            "font": {"size": 12, "color": "#334155"},
-            "bgcolor": "rgba(255,255,255,0)",
+            "font": {"size": 12, "color": theme["text_muted"]},
+            "bgcolor": theme["modebar_bg"],
             "tracegroupgap": 12,
         },
         annotations=annotations,
         shapes=shapes,
-        font={"family": "Segoe UI, Arial, sans-serif", "size": 13, "color": "#0F172A"},
+        font={"family": "Segoe UI, Arial, sans-serif", "size": 13, "color": theme["text_main"]},
+        hoverlabel={"bgcolor": "#0B1727", "bordercolor": theme["line_strong"], "font": {"color": theme["text_main"]}},
     )
     return fig
 
@@ -656,6 +689,7 @@ def _make_gain_figure(
 ) -> go.Figure:
     if chart_text is None:
         chart_text = _resolve_chart_text("en")
+    theme = _dashboard_theme()
     x = metrics["contacted_percentile"]
     selected_row = metrics.loc[metrics["contacted_percentile"] == default_percentile].iloc[0]
     selected_gain = float(selected_row["gain_pct"])
@@ -671,7 +705,7 @@ def _make_gain_figure(
             y=metrics["gain_pct"],
             mode="lines+markers",
             name=chart_text["trace_model"],
-            line={"color": "#0057D9", "width": 3},
+            line={"color": theme["accent_cyan"], "width": 3},
             marker={"size": 4},
             hovertemplate=chart_text["hover_gain"],
         )
@@ -682,7 +716,7 @@ def _make_gain_figure(
             y=metrics["random_baseline_gain_pct"],
             mode="lines",
             name=chart_text["trace_random"],
-            line={"color": "#94A3B8", "width": 1.5, "dash": "dash"},
+            line={"color": theme["text_muted"], "width": 1.5, "dash": "dash"},
             hovertemplate=chart_text["hover_baseline_gain"],
         )
     )
@@ -692,7 +726,7 @@ def _make_gain_figure(
             y=metrics["ideal_gain_pct"],
             mode="lines",
             name=chart_text["trace_ideal"],
-            line={"color": "#CBD5E1", "width": 1.5, "dash": "dot"},
+            line={"color": theme["accent_violet"], "width": 1.5, "dash": "dot"},
             hovertemplate=chart_text["hover_ideal_gain"],
         )
     )
@@ -701,9 +735,9 @@ def _make_gain_figure(
         range=[1, 100],
         showline=True,
         linewidth=1,
-        linecolor="#94A3B8",
+        linecolor=theme["axis_line"],
         ticks="outside",
-        tickcolor="#94A3B8",
+        tickcolor=theme["axis_line"],
         dtick=10,
     )
     fig.update_yaxes(
@@ -711,13 +745,13 @@ def _make_gain_figure(
         range=[0, 105],
         showline=True,
         linewidth=1,
-        linecolor="#94A3B8",
-        gridcolor="#E2E8F0",
+        linecolor=theme["axis_line"],
+        gridcolor=theme["grid"],
         zeroline=False,
     )
     fig.update_layout(
-        paper_bgcolor="#FFFFFF",
-        plot_bgcolor="#FFFFFF",
+        paper_bgcolor=theme["plot_bg"],
+        plot_bgcolor=theme["plot_bg"],
         height=430,
         margin={"l": 72, "r": 24, "t": 56, "b": 60},
         hovermode="x unified",
@@ -727,8 +761,8 @@ def _make_gain_figure(
             "y": 1.02,
             "xanchor": "left",
             "x": 0.0,
-            "font": {"size": 11, "color": "#334155"},
-            "bgcolor": "rgba(255,255,255,0)",
+            "font": {"size": 11, "color": theme["text_muted"]},
+            "bgcolor": theme["modebar_bg"],
         },
         annotations=[
             dict(
@@ -741,11 +775,11 @@ def _make_gain_figure(
                 arrowhead=2,
                 ax=20,
                 ay=-30,
-                bgcolor="rgba(255,255,255,0.94)",
-                bordercolor="#E11D48",
+                bgcolor=theme["annotation_bg"],
+                bordercolor=theme["accent_magenta"],
                 borderwidth=1,
                 borderpad=4,
-                font={"size": 11, "color": "#0F172A"},
+                font={"size": 11, "color": theme["annotation_text"]},
             ),
             dict(
                 x=best_ks_percentile,
@@ -754,11 +788,11 @@ def _make_gain_figure(
                 yref="y",
                 text=chart_text["annot_ks"].format(ks=best_ks_value, p=best_ks_percentile),
                 showarrow=False,
-                bgcolor="rgba(248,250,252,0.95)",
-                bordercolor="#CBD5E1",
+                bgcolor=theme["annotation_alt_bg"],
+                bordercolor=theme["accent_violet"],
                 borderwidth=1,
                 borderpad=4,
-                font={"size": 11, "color": "#334155"},
+                font={"size": 11, "color": theme["annotation_muted"]},
             ),
         ],
         shapes=[
@@ -771,7 +805,7 @@ def _make_gain_figure(
                 x1=default_percentile,
                 y0=0.0,
                 y1=1.0,
-                line={"color": "#E11D48", "width": 2.2, "dash": "dot"},
+                line={"color": theme["accent_magenta"], "width": 2.2, "dash": "dot"},
             ),
             dict(
                 type="line",
@@ -782,10 +816,11 @@ def _make_gain_figure(
                 x1=best_ks_percentile,
                 y0=0.0,
                 y1=1.0,
-                line={"color": "#94A3B8", "width": 1.4, "dash": "dash"},
+                line={"color": theme["accent_violet"], "width": 1.4, "dash": "dash"},
             ),
         ],
-        font={"family": "Segoe UI, Arial, sans-serif", "size": 13, "color": "#0F172A"},
+        font={"family": "Segoe UI, Arial, sans-serif", "size": 13, "color": theme["text_main"]},
+        hoverlabel={"bgcolor": "#0B1727", "bordercolor": theme["line_strong"], "font": {"color": theme["text_main"]}},
     )
     return fig
 
@@ -797,6 +832,7 @@ def _make_success_rate_figure(
 ) -> go.Figure:
     if chart_text is None:
         chart_text = _resolve_chart_text("en")
+    theme = _dashboard_theme()
     fig = go.Figure()
     x = metrics["contacted_percentile"]
     fig.add_trace(
@@ -806,7 +842,7 @@ def _make_success_rate_figure(
             name=chart_text["trace_success"],
             marker={
                 "color": _success_bar_colors(metrics=metrics, required_cutoff=required_cutoff),
-                "line": {"color": "rgba(15, 23, 42, 0.12)", "width": 0.6},
+                "line": {"color": theme["line_soft"], "width": 0.6},
             },
             hovertemplate=chart_text["hover_success_rate"],
         )
@@ -817,9 +853,9 @@ def _make_success_rate_figure(
         range=[1, 100],
         showline=True,
         linewidth=1,
-        linecolor="#94A3B8",
+        linecolor=theme["axis_line"],
         ticks="outside",
-        tickcolor="#94A3B8",
+        tickcolor=theme["axis_line"],
         dtick=10,
     )
     fig.update_yaxes(
@@ -827,13 +863,13 @@ def _make_success_rate_figure(
         range=[0, y_top],
         showline=True,
         linewidth=1,
-        linecolor="#94A3B8",
-        gridcolor="#E2E8F0",
+        linecolor=theme["axis_line"],
+        gridcolor=theme["grid"],
         zeroline=False,
     )
     fig.update_layout(
-        paper_bgcolor="#FFFFFF",
-        plot_bgcolor="#FFFFFF",
+        paper_bgcolor=theme["plot_bg"],
+        plot_bgcolor=theme["plot_bg"],
         height=430,
         margin={"l": 72, "r": 24, "t": 56, "b": 60},
         hovermode="x unified",
@@ -846,11 +882,11 @@ def _make_success_rate_figure(
                 yref="y",
                 text=chart_text["annot_required"].format(p=required_cutoff),
                 showarrow=False,
-                bgcolor="rgba(255,251,235,0.96)",
-                bordercolor="#D97706",
+                bgcolor=theme["annotation_bg"],
+                bordercolor=theme["accent_cyan"],
                 borderwidth=1,
                 borderpad=4,
-                font={"size": 11, "color": "#92400E"},
+                font={"size": 11, "color": theme["annotation_text"]},
             )
         ],
         shapes=[
@@ -863,10 +899,11 @@ def _make_success_rate_figure(
                 x1=required_cutoff,
                 y0=0.0,
                 y1=1.0,
-                line={"color": "#D97706", "width": 1.8, "dash": "dot"},
+                line={"color": theme["accent_cyan"], "width": 1.8, "dash": "dot"},
             )
         ],
-        font={"family": "Segoe UI, Arial, sans-serif", "size": 13, "color": "#0F172A"},
+        font={"family": "Segoe UI, Arial, sans-serif", "size": 13, "color": theme["text_main"]},
+        hoverlabel={"bgcolor": "#0B1727", "bordercolor": theme["line_strong"], "font": {"color": theme["text_main"]}},
     )
     return fig
 
@@ -1016,13 +1053,14 @@ def _make_campaign_distribution_figure(
 ) -> go.Figure:
     if chart_text is None:
         chart_text = _resolve_chart_text("en")
+    theme = _dashboard_theme()
     fig = go.Figure()
     fig.add_trace(
         go.Bar(
             x=distribution["percentile"],
             y=distribution["all_clients"],
             name=chart_text["dist_all_clients"],
-            marker={"color": "rgba(148, 163, 184, 0.60)"},
+            marker={"color": theme["bar_dim"]},
             hovertemplate=chart_text["dist_hover_all"],
         )
     )
@@ -1031,14 +1069,14 @@ def _make_campaign_distribution_figure(
             x=distribution["percentile"],
             y=distribution["campaign_clients"],
             name=chart_text["dist_campaign_clients"],
-            marker={"color": "rgba(0, 87, 217, 0.85)"},
+            marker={"color": theme["accent_cyan"]},
             hovertemplate=chart_text["dist_hover_campaign"],
         )
     )
     fig.update_layout(
         barmode="overlay",
-        paper_bgcolor="#FFFFFF",
-        plot_bgcolor="#FFFFFF",
+        paper_bgcolor=theme["plot_bg"],
+        plot_bgcolor=theme["plot_bg"],
         height=280,
         margin={"l": 70, "r": 20, "t": 28, "b": 56},
         legend={
@@ -1047,16 +1085,17 @@ def _make_campaign_distribution_figure(
             "y": 1.02,
             "xanchor": "left",
             "x": 0.0,
-            "font": {"size": 11, "color": "#334155"},
+            "font": {"size": 11, "color": theme["text_muted"]},
         },
-        font={"family": "Segoe UI, Arial, sans-serif", "size": 12, "color": "#0F172A"},
+        font={"family": "Segoe UI, Arial, sans-serif", "size": 12, "color": theme["text_main"]},
+        hoverlabel={"bgcolor": "#0B1727", "bordercolor": theme["line_strong"], "font": {"color": theme["text_main"]}},
     )
     fig.update_xaxes(
         title_text=chart_text["dist_x_title"],
         dtick=5,
         showline=True,
         linewidth=1,
-        linecolor="#94A3B8",
+        linecolor=theme["axis_line"],
         tickangle=0,
     )
     fig.update_yaxes(
@@ -1064,8 +1103,8 @@ def _make_campaign_distribution_figure(
         rangemode="tozero",
         showline=True,
         linewidth=1,
-        linecolor="#94A3B8",
-        gridcolor="#E2E8F0",
+        linecolor=theme["axis_line"],
+        gridcolor=theme["grid"],
     )
     return fig
 
@@ -1078,6 +1117,7 @@ def _make_campaign_rate_comparison_figure(
 ) -> go.Figure:
     if chart_text is None:
         chart_text = _resolve_chart_text("en")
+    theme = _dashboard_theme()
     labels = [
         chart_text["rate_bar_1"],
         chart_text["rate_bar_2"],
@@ -1088,7 +1128,7 @@ def _make_campaign_rate_comparison_figure(
         campaign_default_sr_pct,
         top_equal_volume_sr_pct,
     ]
-    colors = ["#94A3B8", "#0057D9", "#0EA5A4"]
+    colors = [theme["bar_dim"], theme["accent_magenta"], theme["accent_cyan"]]
     fig = go.Figure(
         data=[
             go.Bar(
@@ -1103,22 +1143,23 @@ def _make_campaign_rate_comparison_figure(
         ]
     )
     fig.update_layout(
-        paper_bgcolor="#FFFFFF",
-        plot_bgcolor="#FFFFFF",
+        paper_bgcolor=theme["plot_bg"],
+        plot_bgcolor=theme["plot_bg"],
         height=280,
         margin={"l": 56, "r": 14, "t": 28, "b": 56},
         showlegend=False,
-        font={"family": "Segoe UI, Arial, sans-serif", "size": 12, "color": "#0F172A"},
+        font={"family": "Segoe UI, Arial, sans-serif", "size": 12, "color": theme["text_main"]},
+        hoverlabel={"bgcolor": "#0B1727", "bordercolor": theme["line_strong"], "font": {"color": theme["text_main"]}},
     )
     fig.update_yaxes(
         title_text=chart_text["rate_y_title"],
         rangemode="tozero",
-        gridcolor="#E2E8F0",
+        gridcolor=theme["grid"],
         showline=True,
         linewidth=1,
-        linecolor="#94A3B8",
+        linecolor=theme["axis_line"],
     )
-    fig.update_xaxes(showline=True, linewidth=1, linecolor="#94A3B8")
+    fig.update_xaxes(showline=True, linewidth=1, linecolor=theme["axis_line"])
     return fig
 
 
@@ -1258,6 +1299,7 @@ def _make_campaign_selection_figure(
     historical_portfolio_rate_pct: float,
     historical_period_label: str,
 ) -> go.Figure:
+    theme = _dashboard_theme()
     fig = make_subplots(
         rows=2,
         cols=1,
@@ -1279,7 +1321,7 @@ def _make_campaign_selection_figure(
         go.Bar(
             x=benchmark_labels,
             y=benchmark_values,
-            marker={"color": ["#2563EB", "#0EA5E9", "#94A3B8"]},
+            marker={"color": [theme["accent_magenta"], theme["accent_cyan"], theme["bar_dim"]]},
             text=[f"{v:.1f}%" for v in benchmark_values],
             textposition="outside",
             cliponaxis=False,
@@ -1296,8 +1338,8 @@ def _make_campaign_selection_figure(
             y=model_guided_curve["estimated_success_rate_pct"],
             name=f"Model-guided cumulative SR ({actual_period_label})",
             marker={
-                "color": "rgba(37,99,235,0.82)",
-                "line": {"color": "rgba(255,255,255,0.65)", "width": 0.5},
+                "color": theme["accent_magenta"],
+                "line": {"color": theme["line_strong"], "width": 0.5},
             },
             hovertemplate="Model-guided within campaign volume: %{x}%<br>Cumulative SR: %{y:.2f}%<extra></extra>",
             opacity=0.95,
@@ -1310,7 +1352,7 @@ def _make_campaign_selection_figure(
             x=selected_curve["contact_share_pct"],
             y=selected_curve["estimated_success_rate_pct"],
             mode="lines",
-            line={"color": "#0EA5E9", "width": 2.0, "dash": "dash"},
+            line={"color": theme["accent_cyan"], "width": 2.0, "dash": "dash"},
             name=f"Selected cumulative SR ({actual_period_label})",
             hovertemplate="Selected clients within campaign volume: %{x}%<br>Cumulative SR: %{y:.2f}%<extra></extra>",
         ),
@@ -1330,11 +1372,11 @@ def _make_campaign_selection_figure(
                 yref="y2",
                 text=f"Selected full-volume estimate: {selected_full:.1f}%",
                 showarrow=False,
-                bgcolor="rgba(37,99,235,0.10)",
-                bordercolor="#2563EB",
+                bgcolor=theme["annotation_bg"],
+                bordercolor=theme["accent_cyan"],
                 borderwidth=1,
                 borderpad=3,
-                font={"size": 10, "color": "#1E3A8A"},
+                font={"size": 10, "color": theme["annotation_text"]},
             ),
             dict(
                 x=100,
@@ -1345,19 +1387,20 @@ def _make_campaign_selection_figure(
                 showarrow=False,
                 xanchor="right",
                 yanchor="bottom",
-                bgcolor="rgba(14,165,233,0.12)",
-                bordercolor="#0EA5E9",
+                bgcolor=theme["annotation_alt_bg"],
+                bordercolor=theme["accent_magenta"],
                 borderwidth=1,
                 borderpad=3,
-                font={"size": 10, "color": "#0C4A6E"},
+                font={"size": 10, "color": theme["annotation_text"]},
             ),
         ],
-        paper_bgcolor="#FFFFFF",
-        plot_bgcolor="#FFFFFF",
-        font={"family": "Segoe UI, Arial, sans-serif", "size": 12, "color": "#0F172A"},
+        paper_bgcolor=theme["plot_bg"],
+        plot_bgcolor=theme["plot_bg"],
+        font={"family": "Segoe UI, Arial, sans-serif", "size": 12, "color": theme["text_main"]},
         width=680,
         height=620,
         margin={"l": 72, "r": 30, "t": 96, "b": 60},
+        hoverlabel={"bgcolor": "#0B1727", "bordercolor": theme["line_strong"], "font": {"color": theme["text_main"]}},
     )
     top_max = max(benchmark_values) if benchmark_values else 0.0
     fig.update_yaxes(
@@ -1365,9 +1408,9 @@ def _make_campaign_selection_figure(
         row=1,
         col=1,
         range=[0, max(5.0, top_max * 1.18)],
-        gridcolor="#E2E8F0",
+        gridcolor=theme["grid"],
     )
-    fig.update_yaxes(title_text="Estimated Success Rate (%)", row=2, col=1, rangemode="tozero", gridcolor="#E2E8F0")
+    fig.update_yaxes(title_text="Estimated Success Rate (%)", row=2, col=1, rangemode="tozero", gridcolor=theme["grid"])
     fig.update_xaxes(title_text="Contacted Share Within Campaign Volume (%)", row=2, col=1, dtick=10, range=[1, 100])
     return fig
 
@@ -1389,6 +1432,7 @@ def EvaluateModel(
     )
     labels = _resolve_report_language(language=language)
     chart_text = _resolve_chart_text(language=language)
+    theme = _dashboard_theme()
     model_score, target_store, _ = create_simulated_tables(seed=seed)
     model_score = model_score.copy()
     model_score["fs_time"] = pd.to_datetime(model_score["fs_time"], errors="coerce")
@@ -1632,20 +1676,28 @@ def EvaluateModel(
     }}
 
     :root {{
-      --bg-top: #F8FAFC;
-      --bg-bottom: #EEF2FF;
-      --panel: #FFFFFF;
-      --text-main: #0F172A;
-      --text-muted: #475569;
-      --line-soft: #E2E8F0;
-      --accent: #0057D9;
-      --color-1: #ff00ff;
-      --color-2: #00e5ff;
+      --bg-top: {theme["body_bg_top"]};
+      --bg-bottom: {theme["body_bg_bottom"]};
+      --panel: {theme["panel"]};
+      --card-bg: {theme["card_bg"]};
+      --card-bg-soft: {theme["card_bg_soft"]};
+      --text-main: {theme["text_main"]};
+      --text-muted: {theme["text_muted"]};
+      --line-soft: {theme["line_soft"]};
+      --line-strong: {theme["line_strong"]};
+      --accent: {theme["accent_cyan"]};
+      --color-1: {theme["color_1"]};
+      --color-2: {theme["color_2"]};
+      --accent-magenta: {theme["accent_magenta"]};
+      --accent-violet: {theme["accent_violet"]};
     }}
     body {{
       margin: 0;
       padding: 32px 24px;
-      background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 100%);
+      background:
+        radial-gradient(circle at 50% 18%, rgba(0, 229, 255, 0.08), transparent 18%),
+        radial-gradient(circle at 50% 82%, rgba(255, 0, 255, 0.06), transparent 24%),
+        linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 100%);
       color: var(--text-main);
       font-family: "Segoe UI", Arial, sans-serif;
     }}
@@ -1654,7 +1706,9 @@ def EvaluateModel(
       margin: 0 auto;
       background: var(--panel);
       border-radius: 14px;
-      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+      box-shadow:
+        0 20px 48px rgba(4, 10, 20, 0.42),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.02);
       padding: 26px 24px 14px 24px;
       position: relative;
       overflow: visible;
@@ -1743,8 +1797,8 @@ def EvaluateModel(
     .plot-card {{
       border: 1px solid var(--line-soft);
       border-radius: 12px;
-      background: #FFFFFF;
-      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+      background: linear-gradient(180deg, var(--card-bg) 0%, var(--card-bg-soft) 100%);
+      box-shadow: 0 10px 24px rgba(4, 10, 20, 0.22);
       padding: 8px 10px 6px 10px;
       min-width: 0;
     }}
@@ -1777,9 +1831,9 @@ def EvaluateModel(
       width: 24px;
       height: 24px;
       border-radius: 50%;
-      border: 1px solid #CBD5E1;
-      background: #F8FAFC;
-      color: #0F172A;
+      border: 1px solid var(--line-strong);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-main);
       font-size: 13px;
       font-weight: 700;
       cursor: default;
@@ -1792,8 +1846,8 @@ def EvaluateModel(
       top: 30px;
       min-width: 260px;
       max-width: 320px;
-      background: #0F172A;
-      color: #F8FAFC;
+      background: rgba(10, 18, 30, 0.94);
+      color: var(--text-main);
       border-radius: 8px;
       padding: 8px 10px;
       font-size: 12px;
@@ -1806,12 +1860,12 @@ def EvaluateModel(
       display: block;
       margin-bottom: 4px;
       font-size: 12px;
-      color: #FFFFFF;
+      color: var(--text-main);
     }}
     .tooltip-body p {{
       margin: 0 0 6px 0;
       font-size: 12px;
-      color: #E2E8F0;
+      color: var(--text-muted);
       line-height: 1.35;
     }}
     .tooltip-body ul {{
@@ -1820,7 +1874,7 @@ def EvaluateModel(
     }}
     .tooltip-body li {{
       margin: 0 0 4px 0;
-      color: #E2E8F0;
+      color: var(--text-muted);
       line-height: 1.3;
       font-size: 12px;
     }}
@@ -1874,7 +1928,7 @@ def EvaluateModel(
       border: 1px solid var(--line-soft);
       border-radius: 10px;
       padding: 10px 12px;
-      background: linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%);
+      background: linear-gradient(180deg, rgba(33, 62, 97, 0.96) 0%, rgba(28, 53, 84, 0.96) 100%);
     }}
     .kpi-label {{
       font-size: 12px;
@@ -1903,6 +1957,11 @@ def EvaluateModel(
       align-items: center;
       gap: 10px;
       flex-wrap: wrap;
+      border: 1px solid var(--line-soft);
+      border-radius: 12px;
+      padding: 10px 12px;
+      background: rgba(22, 43, 69, 0.74);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
     }}
     .controls label {{
       font-size: 13px;
@@ -1917,21 +1976,21 @@ def EvaluateModel(
       font-size: 13px;
       color: var(--text-main);
       font-weight: 700;
-      background: #EFF6FF;
-      border: 1px solid #BFDBFE;
+      background: rgba(0, 229, 255, 0.10);
+      border: 1px solid rgba(0, 229, 255, 0.42);
       border-radius: 999px;
       padding: 2px 9px;
     }}
     #desired-rate-slider {{
       width: min(300px, 80vw);
-      accent-color: #D97706;
+      accent-color: var(--accent-magenta);
     }}
     #desired-rate-value, #required-cutoff-value {{
       font-size: 13px;
-      color: #7C2D12;
+      color: var(--text-main);
       font-weight: 700;
-      background: #FFF7ED;
-      border: 1px solid #FDBA74;
+      background: rgba(255, 75, 216, 0.12);
+      border: 1px solid rgba(255, 75, 216, 0.42);
       border-radius: 999px;
       padding: 2px 9px;
     }}
@@ -1948,6 +2007,15 @@ def EvaluateModel(
       margin: 0 0 6px 0;
       font-size: 22px;
       color: var(--text-main);
+    }}
+    .js-plotly-plot .plotly .modebar {{
+      background: transparent !important;
+    }}
+    .js-plotly-plot .plotly .modebar-btn svg {{
+      fill: #BFD3F1 !important;
+    }}
+    .js-plotly-plot .plotly .main-svg {{
+      border-radius: 10px;
     }}
     @media (max-width: 1100px) {{
       .campaign-top-row {{
@@ -2054,6 +2122,9 @@ def EvaluateModel(
     const labelGain = "{labels["abbr_gain"]}";
     const requiredCutoffPrefix = "{labels["required_cutoff_prefix"]}";
     const neededForTargetPrefix = "{labels["required_cutoff_prefix"]}";
+    const accentCyan = "{theme["accent_cyan"]}";
+    const accentMagenta = "{theme["accent_magenta"]}";
+    const dimBarColor = "{theme["bar_dim"]}";
 
     function formatInt(x) {{
       return Number(x).toLocaleString(numberLocale);
@@ -2084,9 +2155,9 @@ def EvaluateModel(
 
     function barColorForRequired(point, required) {{
       if (point.p <= required) {{
-        return "rgba(0,87,217,0.80)";
+        return accentCyan;
       }}
-      return "rgba(148,163,184,0.28)";
+      return dimBarColor;
     }}
 
     function updateGainFigure(divId, point, ksPercentile) {{
@@ -2112,9 +2183,9 @@ def EvaluateModel(
       }}
       const colors = points.map((point) => {{
         if (point.p <= required) {{
-          return "rgba(0,87,217,0.80)";
+          return accentCyan;
         }}
-        return "rgba(148,163,184,0.28)";
+        return dimBarColor;
       }});
       Plotly.restyle(gd, {{
         "marker.color": [colors]
