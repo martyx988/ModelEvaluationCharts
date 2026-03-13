@@ -97,11 +97,14 @@ def test_generated_report_contains_wrapper_only_animated_border_hooks(tmp_path) 
     html = output.read_text(encoding="utf-8")
 
     assert 'class="wrap dashboard-shell"' in html
+    assert "@property --angle" in html
     assert ".dashboard-shell::before" in html
+    assert ".dashboard-shell::after" in html
     assert "conic-gradient(" in html
-    assert "@keyframes dashboard-border-spin" in html
-    assert "animation: dashboard-border-spin" in html
-    assert "padding: 1px;" in html
+    assert "from var(--angle)" in html
+    assert "@keyframes rotate" in html
+    assert "animation: rotate" in html
+    assert "inset: -3px;" in html
 
 
 def test_generated_report_includes_campaign_selection_section_when_enabled(tmp_path) -> None:

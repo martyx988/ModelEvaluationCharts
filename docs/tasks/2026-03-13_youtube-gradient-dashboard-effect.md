@@ -16,8 +16,8 @@ Add a modern animated gradient border to the main HTML dashboard wrapper generat
 - Restyling the inner cards/charts beyond what is necessary to preserve readability with the wrapper effect.
 
 ## Assumptions / Open Questions
-- Assumption: the corrected requirement is best met with a rotating `conic-gradient` border on the outer wrapper, masked so only the border ring is visible.
-- Assumption: a very soft ambient glow can remain behind the wrapper, but the animated border is the primary effect.
+- Assumption: the corrected requirement is best met by closely following the provided `@property --angle` + `conic-gradient(from var(--angle))` pattern on the outer wrapper.
+- Assumption: the border layer and blurred glow layer should both live on wrapper pseudo-elements so the inner dashboard remains unchanged.
 - Open question: none blocking for this slice.
 
 # Strategic Plan
@@ -41,8 +41,8 @@ Add a modern animated gradient border to the main HTML dashboard wrapper generat
   - Update only the HTML/CSS shell emitted by `EvaluateModel`.
   - Keep Plotly chart generation and client-side JS behavior unchanged unless required for visual fit.
 - Visual strategy:
-  - Use a lightweight pseudo-element border ring on the wrapper.
-  - Animate a `conic-gradient` subtly and continuously.
+  - Use the provided `@property --angle` animation pattern on the wrapper pseudo-elements.
+  - Animate a `conic-gradient` subtly and continuously through the custom angle property.
   - Keep inner content styling stable so the effect reads as a frame, not a redesign.
   - Keep the output self-contained and offline-friendly.
 - Error handling:
@@ -70,11 +70,16 @@ Add a modern animated gradient border to the main HTML dashboard wrapper generat
 - 2026-03-13: Intake completed; confirmed YouTube page access and inferred the requested effect from the video title and preview frame.
 - 2026-03-13: Planner opened this task file and documented the slice contract, assumptions, and verification plan.
 - 2026-03-13: User clarified that the effect should apply only to the main wrapper and should be an animated gradient border via pseudo-elements, not a broader shell/card restyle.
+- 2026-03-13: User supplied a more exact CSS reference using `@property --angle`, `conic-gradient(from var(--angle))`, and paired `::before`/`::after` layers; implementation should now follow that pattern more directly.
 - 2026-03-13: QA replaced the earlier broad-style regression with a wrapper-only test for `.dashboard-shell::before`, `conic-gradient`, `@keyframes dashboard-border-spin`, and the pseudo-element border padding hook.
 - 2026-03-13: Developer narrowed the implementation to the main dashboard wrapper, removed the extra card-level effect, and added short CSS comments explaining the pseudo-element border ring, soft halo, and rotation animation.
 - 2026-03-13: Build/Verify passed with `python -m pytest tests\test_evaluate_model.py -q` (19 passed) and `python evaluate_model.py` (report regenerated).
 - 2026-03-13: Visual QA reviewed the revised report in a local browser session served over `http://127.0.0.1:8766/model_evaluation_report.html`; the animated border appeared subtle, wrapper-only, and readable. Residual note: browser console showed only a missing `favicon.ico` request from the local ad-hoc HTTP server.
 - 2026-03-13: Reviewer approved the revised slice with no blocking issues.
+- 2026-03-13: QA updated the regression again to require the sample-inspired hooks: `@property --angle`, `.dashboard-shell::before`, `.dashboard-shell::after`, `from var(--angle)`, `@keyframes rotate`, `animation: rotate`, and `inset: -3px`.
+- 2026-03-13: Developer refactored the wrapper CSS to follow the supplied sample more directly, using `@property --angle` plus matching conic-gradient border/glow pseudo-elements and short explanatory comments.
+- 2026-03-13: Build/Verify passed again with `python -m pytest tests\test_evaluate_model.py -q` (19 passed) and `python evaluate_model.py` (report regenerated).
+- 2026-03-13: Visual QA reviewed the sample-inspired revision in a local browser session served over `http://127.0.0.1:8767/model_evaluation_report.html`; the wrapper effect matched the provided pattern more closely while keeping the dashboard structure intact. Residual note: browser console showed only a missing `favicon.ico` request from the local ad-hoc HTTP server.
 
 # Final Summary
-Completed. The final HTML dashboard now uses a lightweight animated `conic-gradient` border on the main wrapper only, implemented via CSS pseudo-elements so the layout does not shift. Inner dashboard content and structure were preserved, regression coverage was updated for the new hooks, tests passed, the report was regenerated successfully, and the rendered result was visually reviewed in-browser.
+Completed. The final HTML dashboard now uses a wrapper-only animated border that follows the provided sample more directly: a registered `--angle` custom property drives a `conic-gradient(from var(--angle))` on paired wrapper pseudo-elements, with one sharp border layer and one blurred glow layer. Inner dashboard content and structure were preserved, regression coverage was updated for the new hooks, tests passed, the report was regenerated successfully, and the rendered result was visually reviewed in-browser.

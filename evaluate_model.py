@@ -1624,6 +1624,13 @@ def EvaluateModel(
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{labels["report_title"]}</title>
   <style>
+    /* Register the animated angle so the conic-gradient rotates smoothly. */
+    @property --angle {{
+      syntax: "<angle>";
+      initial-value: 0deg;
+      inherits: false;
+    }}
+
     :root {{
       --bg-top: #F8FAFC;
       --bg-bottom: #EEF2FF;
@@ -1632,10 +1639,9 @@ def EvaluateModel(
       --text-muted: #475569;
       --line-soft: #E2E8F0;
       --accent: #0057D9;
-      --border-cyan: rgba(56, 189, 248, 0.62);
-      --border-blue: rgba(0, 87, 217, 0.58);
-      --border-violet: rgba(129, 140, 248, 0.55);
-      --border-glow: rgba(59, 130, 246, 0.16);
+      --glow-color-1: #4AA8FF;
+      --glow-color-2: #7B7BFF;
+      --glow-color-3: #FF9A3D;
     }}
     body {{
       margin: 0;
@@ -1648,69 +1654,64 @@ def EvaluateModel(
       max-width: 1360px;
       margin: 0 auto;
       background: var(--panel);
-      border: 1px solid var(--line-soft);
       border-radius: 14px;
       box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
       padding: 26px 24px 14px 24px;
       position: relative;
-      overflow: hidden;
+      overflow: visible;
       isolation: isolate;
+      z-index: 0;
     }}
     .dashboard-shell {{
-      border-color: rgba(226, 232, 240, 0.7);
     }}
     .dashboard-shell > * {{
       position: relative;
       z-index: 1;
     }}
     .dashboard-shell::before {{
-      /* A masked conic-gradient creates an animated border ring without affecting layout. */
+      /* This layer is the animated gradient border sitting just outside the wrapper. */
       content: "";
       position: absolute;
-      inset: 0;
+      inset: -3px;
       border-radius: inherit;
-      padding: 1px;
       pointer-events: none;
-      z-index: 0;
+      z-index: -1;
       background: conic-gradient(
-        from 0deg,
-        rgba(56, 189, 248, 0.14) 0deg,
-        var(--border-cyan) 70deg,
-        var(--border-blue) 150deg,
-        var(--border-violet) 235deg,
-        rgba(56, 189, 248, 0.18) 310deg,
-        rgba(56, 189, 248, 0.14) 360deg
+        from var(--angle),
+        var(--glow-color-1),
+        var(--glow-color-2),
+        var(--glow-color-3),
+        var(--glow-color-1)
       );
-      -webkit-mask:
-        linear-gradient(#000 0 0) content-box,
-        linear-gradient(#000 0 0);
-      -webkit-mask-composite: xor;
-      mask:
-        linear-gradient(#000 0 0) content-box,
-        linear-gradient(#000 0 0);
-      mask-composite: exclude;
-      animation: dashboard-border-spin 14s linear infinite;
-      will-change: transform;
-      opacity: 0.95;
+      animation: rotate 10s linear infinite;
+      opacity: 0.9;
     }}
     .dashboard-shell::after {{
-      /* A low-opacity halo keeps the animated edge polished while preserving readability. */
+      /* This blurred copy creates a soft glow while keeping the content readable. */
       content: "";
       position: absolute;
-      inset: -10px;
+      inset: -3px;
       border-radius: inherit;
-      background:
-        radial-gradient(circle at top, var(--border-glow), transparent 42%),
-        radial-gradient(circle at 100% 0%, rgba(129, 140, 248, 0.12), transparent 30%);
-      filter: blur(20px);
-      opacity: 0.8;
-      z-index: -1;
       pointer-events: none;
+      z-index: -1;
+      background: conic-gradient(
+        from var(--angle),
+        var(--glow-color-1),
+        var(--glow-color-2),
+        var(--glow-color-3),
+        var(--glow-color-1)
+      );
+      filter: blur(20px);
+      opacity: 0.28;
+      animation: rotate 10s linear infinite;
     }}
-    /* Slow rotation keeps the border alive without becoming distracting. */
-    @keyframes dashboard-border-spin {{
+    /* The registered custom property lets the gradient angle animate smoothly. */
+    @keyframes rotate {{
+      from {{
+        --angle: 0deg;
+      }}
       to {{
-        transform: rotate(1turn);
+        --angle: 360deg;
       }}
     }}
     .content-grid {{
