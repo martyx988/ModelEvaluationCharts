@@ -1639,9 +1639,8 @@ def EvaluateModel(
       --text-muted: #475569;
       --line-soft: #E2E8F0;
       --accent: #0057D9;
-      --glow-color-1: #4AA8FF;
-      --glow-color-2: #7B7BFF;
-      --glow-color-3: #FF9A3D;
+      --color-1: #ff00ff;
+      --color-2: #00e5ff;
     }}
     body {{
       margin: 0;
@@ -1669,41 +1668,57 @@ def EvaluateModel(
       z-index: 1;
     }}
     .dashboard-shell::before {{
-      /* This layer is the animated gradient border sitting just outside the wrapper. */
+      /* This layer draws only the animated border ring, keeping the interior visually still. */
       content: "";
       position: absolute;
-      inset: -3px;
+      inset: -4px;
       border-radius: inherit;
+      padding: 4px;
       pointer-events: none;
       z-index: -1;
       background: conic-gradient(
         from var(--angle),
-        var(--glow-color-1),
-        var(--glow-color-2),
-        var(--glow-color-3),
-        var(--glow-color-1)
+        var(--color-1),
+        var(--color-2),
+        var(--color-1)
       );
-      animation: rotate 10s linear infinite;
-      opacity: 0.9;
+      -webkit-mask:
+        linear-gradient(#000 0 0) content-box,
+        linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor;
+      mask:
+        linear-gradient(#000 0 0) content-box,
+        linear-gradient(#000 0 0);
+      mask-composite: exclude;
+      animation: rotate 4s linear infinite;
+      opacity: 0.98;
     }}
     .dashboard-shell::after {{
-      /* This blurred copy creates a soft glow while keeping the content readable. */
+      /* This blurred ring stays outside the wrapper to create the soft border glow. */
       content: "";
       position: absolute;
-      inset: -3px;
+      inset: -4px;
       border-radius: inherit;
+      padding: 4px;
       pointer-events: none;
       z-index: -1;
       background: conic-gradient(
         from var(--angle),
-        var(--glow-color-1),
-        var(--glow-color-2),
-        var(--glow-color-3),
-        var(--glow-color-1)
+        var(--color-1),
+        var(--color-2),
+        var(--color-1)
       );
-      filter: blur(20px);
-      opacity: 0.28;
-      animation: rotate 10s linear infinite;
+      -webkit-mask:
+        linear-gradient(#000 0 0) content-box,
+        linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor;
+      mask:
+        linear-gradient(#000 0 0) content-box,
+        linear-gradient(#000 0 0);
+      mask-composite: exclude;
+      filter: blur(25px);
+      opacity: 0.6;
+      animation: rotate 4s linear infinite;
     }}
     /* The registered custom property lets the gradient angle animate smoothly. */
     @keyframes rotate {{
