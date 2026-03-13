@@ -91,6 +91,20 @@ def test_generated_report_contains_interactive_cutoff_control(tmp_path) -> None:
     assert "plot-card-head" in html
 
 
+def test_generated_report_contains_gradient_shell_effect_hooks(tmp_path) -> None:
+    output = tmp_path / "report_gradient.html"
+    EvaluateModel(output_html_path=output, seed=42)
+    html = output.read_text(encoding="utf-8")
+
+    assert 'class="wrap dashboard-shell"' in html
+    assert 'class="plot-card surface-card"' in html
+    assert "--shell-border-start" in html
+    assert ".dashboard-shell {" in html
+    assert ".surface-card {" in html
+    assert "border-box" in html
+    assert "radial-gradient(" in html
+
+
 def test_generated_report_includes_campaign_selection_section_when_enabled(tmp_path) -> None:
     model_score, _, _ = create_simulated_tables(seed=42)
     campaign_clients = model_score[["pt_unified_key"]].head(50).copy()
