@@ -81,6 +81,27 @@ def test_primary_figure_uses_dark_dashboard_theme() -> None:
     assert figure.layout.font.color == "#F0F2F5"
 
 
+def test_gain_figure_uses_soft_grid_fill_and_refined_legend() -> None:
+    metrics = _build_metrics_by_contact_percentile(_performance_fixture())
+    figure = _make_gain_figure(metrics=metrics, default_percentile=20)
+
+    trace_names = [trace.name for trace in figure.data]
+    assert "Model" in trace_names
+    assert "Ideal" in trace_names
+    assert any(getattr(trace, "fill", None) == "tozeroy" for trace in figure.data)
+
+    ideal_trace = next(trace for trace in figure.data if trace.name == "Ideal")
+    assert ideal_trace.line.dash == "dot"
+
+    layout = figure.layout
+    assert layout.xaxis.gridcolor == "rgba(255, 255, 255, 0.05)"
+    assert layout.yaxis.gridcolor == "rgba(255, 255, 255, 0.05)"
+    assert layout.legend.x > 0.8
+    assert layout.legend.y > 0.95
+    assert layout.xaxis.tickfont.color == "#919EAB"
+    assert layout.yaxis.tickfont.color == "#919EAB"
+
+
 def test_generated_report_contains_interactive_cutoff_control(tmp_path) -> None:
     output = tmp_path / "report.html"
     EvaluateModel(output_html_path=output, seed=42)
@@ -118,6 +139,17 @@ def test_generated_report_contains_wrapper_only_animated_border_hooks(tmp_path) 
     assert "inset: -2px;" in html
     assert "padding: 2px;" in html
     assert "mask-composite: exclude;" in html
+
+
+def test_generated_report_contains_gain_chart_polish_hooks(tmp_path) -> None:
+    output = tmp_path / "report_gain_polish.html"
+    EvaluateModel(output_html_path=output, seed=42)
+    html = output.read_text(encoding="utf-8")
+
+    assert "drop-shadow(0 0 5px #00e5ff)" in html
+    assert "applyGainChartEnhancements" in html
+    assert "rgba(255, 255, 255, 0.05)" in html
+    assert "border-left: 2px solid #ff00ff" in html
 
 
 def test_generated_report_contains_dark_neon_shell_palette(tmp_path) -> None:

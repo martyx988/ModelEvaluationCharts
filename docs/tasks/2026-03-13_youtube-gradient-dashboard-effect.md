@@ -10,6 +10,12 @@ Align the final HTML dashboard to the provided premium dark glassmorphism refere
 - Internal dashboard surfaces, text, controls, and charts use a coherent premium dark theme with clearer hierarchy.
 - KPI cards and chart cards feel like secondary inner cards inside the main glowing container.
 - The main wrapper and inner cards use restrained glassmorphism treatment (`backdrop-filter`, soft transparency, subtle borders) without hurting readability.
+- The cumulative gain chart uses softer scaffolding and more premium data styling:
+  - subtle dashed grids
+  - cyan model line with soft glow
+  - fine dotted magenta ideal line
+  - lightweight glass-style annotations
+  - subtle area emphasis under the model curve
 - The effect is implemented with self-contained HTML/CSS only; no external CDN or remote asset is introduced.
 - Existing dashboard interactivity and report generation still work.
 - Automated tests cover the presence of the new visual-effect hooks in the generated HTML.
@@ -32,6 +38,7 @@ Align the final HTML dashboard to the provided premium dark glassmorphism refere
 - Add regression coverage for the screenshot-aligned dark palette in the HTML shell and figures.
 - Update the dashboard wrapper CSS to match the premium charcoal glass-card direction more closely.
 - Update internal dashboard and chart colors so the full report feels restrained, layered, and stylistically consistent.
+- Upgrade the cumulative gain chart styling to reduce noise and improve visual hierarchy.
 - Generate and visually review the final HTML output, then document the result and any tradeoffs.
 
 # Tactical Plan
@@ -47,6 +54,11 @@ Align the final HTML dashboard to the provided premium dark glassmorphism refere
 - [ ] Run `pytest` and regenerate the HTML report.
 - [ ] Visually inspect the rendered report and refine if needed.
 - [ ] Update the task log, checklist, and final summary with evidence.
+- [ ] Add failing test coverage for cumulative gain chart polish.
+- [ ] Implement cumulative gain chart line/fill/grid/annotation refinements.
+- [ ] Run `pytest` and regenerate the HTML report.
+- [ ] Visually inspect the gain chart and refine if needed.
+- [ ] Update the task log, checklist, and final summary with evidence.
 
 # Architecture Notes
 - Public API remains unchanged:
@@ -61,6 +73,7 @@ Align the final HTML dashboard to the provided premium dark glassmorphism refere
   - Use a dark charcoal page background and a semi-transparent charcoal report surface.
   - Create a clear card-in-card hierarchy with softer inner panels for KPIs and charts.
   - Carry the neon palette into accents and borders more than into large surface fills.
+  - Keep the gain chart scaffolding quiet so the cyan model line stays dominant.
   - Keep the output self-contained and offline-friendly.
 - Error handling:
   - No new runtime pathways expected; existing report generation should continue to fail loudly on existing validation errors.
@@ -94,6 +107,7 @@ Align the final HTML dashboard to the provided premium dark glassmorphism refere
 - 2026-03-13: User further clarified that the magenta/cyan palette should match the new sample and that only the wrapper border ring, not the wrapper interior, should appear animated.
 - 2026-03-13: User requested a broader screenshot-aligned theme pass so the page background, wrapper surface, and dashboard colors all fit the dark neon style.
 - 2026-03-13: User supplied a stronger “pro-level” visual reference emphasizing a neutral charcoal glass container, clearer card hierarchy, refined typography, and restrained glow treatment.
+- 2026-03-13: User requested a focused cumulative gain chart upgrade: quieter grids/axes, glowing model line, fine ideal benchmark, lighter tooltip treatment, subtle area fill, and cleaner legend placement.
 - 2026-03-13: QA replaced the earlier broad-style regression with a wrapper-only test for `.dashboard-shell::before`, `conic-gradient`, `@keyframes dashboard-border-spin`, and the pseudo-element border padding hook.
 - 2026-03-13: Developer narrowed the implementation to the main dashboard wrapper, removed the extra card-level effect, and added short CSS comments explaining the pseudo-element border ring, soft halo, and rotation animation.
 - 2026-03-13: Build/Verify passed with `python -m pytest tests\test_evaluate_model.py -q` (19 passed) and `python evaluate_model.py` (report regenerated).
@@ -115,6 +129,10 @@ Align the final HTML dashboard to the provided premium dark glassmorphism refere
 - 2026-03-13: Developer shifted the visual language away from blue-heavy surfaces to a charcoal glass container, softer inner KPI/chart cards, refined spacing/typography, and a more restrained neon-accent usage.
 - 2026-03-13: Build/Verify passed again with `python -m pytest tests\test_evaluate_model.py -q` (21 passed) and `python evaluate_model.py` (report regenerated).
 - 2026-03-13: Visual QA reviewed the premium glass-card revision in a local browser session served over `http://127.0.0.1:8770/model_evaluation_report.html`; the dashboard now reads much closer to the provided “pro-level” design direction while preserving content and interactions. Residual note: browser console showed only a missing `favicon.ico` request from the local ad-hoc HTTP server.
+- 2026-03-13: QA added focused regression checks for cumulative gain chart polish, covering soft grids, area fill presence, refined legend placement, muted ticks, and gain-chart enhancement hooks in the generated HTML.
+- 2026-03-13: Developer upgraded the cumulative gain chart with a dedicated fill layer, quieter dashed grids, a finer magenta ideal line, lighter glass-style annotation text treatment, and post-render SVG enhancements for cyan glow and gradient fill.
+- 2026-03-13: Build/Verify passed with `python -m pytest tests\test_evaluate_model.py -q` (23 passed) and `python evaluate_model.py` (report regenerated).
+- 2026-03-13: Visual QA reviewed the gain-chart styling revision in a local browser session served over `http://127.0.0.1:8771/model_evaluation_report.html`; the chart scaffolding is calmer and the model signal reads more prominently. Residual note: browser console showed only a missing `favicon.ico` request from the local ad-hoc HTTP server.
 
 # Final Summary
-Completed. The final HTML dashboard now follows a more premium charcoal glassmorphism direction: a darker neutral page background, a semi-transparent glass main container with animated magenta/cyan border glow, layered inner KPI/chart cards, and coordinated dark Plotly figures. The existing dashboard structure and interactions were preserved, regression coverage was expanded for the revised palette, tests passed, the report was regenerated successfully, and the rendered result was visually reviewed in-browser.
+Completed. The final HTML dashboard now follows a more premium charcoal glassmorphism direction and includes a refined cumulative gain chart: softer dashed grids, muted axes, a more delicate ideal benchmark, lighter glass-style annotations, and stronger emphasis on the model curve through glow and subtle under-fill. The existing dashboard structure and interactions were preserved, regression coverage was expanded for both the revised palette and gain-chart styling, tests passed, the report was regenerated successfully, and the rendered result was visually reviewed in-browser.

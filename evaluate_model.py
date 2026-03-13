@@ -704,6 +704,30 @@ def _make_gain_figure(
         go.Scatter(
             x=x,
             y=metrics["gain_pct"],
+            mode="lines",
+            name="Model Area",
+            line={"color": "rgba(0,0,0,0)", "width": 0},
+            fill="tozeroy",
+            fillcolor="rgba(0, 229, 255, 0.015)",
+            hoverinfo="skip",
+            showlegend=False,
+        )
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=x,
+            y=metrics["gain_pct"],
+            mode="lines",
+            name="Model Glow",
+            line={"color": "rgba(0, 229, 255, 0.18)", "width": 7},
+            hoverinfo="skip",
+            showlegend=False,
+        )
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=x,
+            y=metrics["gain_pct"],
             mode="lines+markers",
             name=chart_text["trace_model"],
             line={"color": theme["accent_cyan"], "width": 3},
@@ -717,7 +741,7 @@ def _make_gain_figure(
             y=metrics["random_baseline_gain_pct"],
             mode="lines",
             name=chart_text["trace_random"],
-            line={"color": theme["text_muted"], "width": 1.5, "dash": "dash"},
+            line={"color": "rgba(145, 158, 171, 0.80)", "width": 1.2, "dash": "dash"},
             hovertemplate=chart_text["hover_baseline_gain"],
         )
     )
@@ -727,7 +751,7 @@ def _make_gain_figure(
             y=metrics["ideal_gain_pct"],
             mode="lines",
             name=chart_text["trace_ideal"],
-            line={"color": theme["accent_violet"], "width": 1.5, "dash": "dot"},
+            line={"color": theme["accent_magenta"], "width": 1.1, "dash": "dot"},
             hovertemplate=chart_text["hover_ideal_gain"],
         )
     )
@@ -740,6 +764,11 @@ def _make_gain_figure(
         ticks="outside",
         tickcolor=theme["axis_line"],
         dtick=10,
+        showgrid=True,
+        gridcolor="rgba(255, 255, 255, 0.05)",
+        griddash="dash",
+        tickfont={"color": "#919EAB"},
+        title_font={"color": theme["text_main"]},
     )
     fig.update_yaxes(
         title_text=chart_text["y_gain_share"],
@@ -747,8 +776,11 @@ def _make_gain_figure(
         showline=True,
         linewidth=1,
         linecolor=theme["axis_line"],
-        gridcolor=theme["grid"],
+        gridcolor="rgba(255, 255, 255, 0.05)",
+        griddash="dash",
         zeroline=False,
+        tickfont={"color": "#919EAB"},
+        title_font={"color": theme["text_main"]},
     )
     fig.update_layout(
         paper_bgcolor=theme["plot_bg"],
@@ -760,38 +792,48 @@ def _make_gain_figure(
             "orientation": "h",
             "yanchor": "bottom",
             "y": 1.02,
-            "xanchor": "left",
-            "x": 0.0,
+            "xanchor": "right",
+            "x": 1.0,
             "font": {"size": 11, "color": theme["text_muted"]},
             "bgcolor": theme["modebar_bg"],
         },
         annotations=[
             dict(
                 x=default_percentile,
-                y=selected_gain,
+                y=min(selected_gain + 9, 102),
                 xref="x",
                 yref="y",
-                text=chart_text["annot_top"].format(p=default_percentile, sr=selected_sr, gain=selected_gain),
-                showarrow=True,
-                arrowhead=2,
-                ax=20,
-                ay=-30,
-                bgcolor=theme["annotation_bg"],
-                bordercolor=theme["accent_magenta"],
-                borderwidth=1,
+                text=(
+                    "<span style='display:inline-block;padding:6px 10px 6px 10px;"
+                    "border-left: 2px solid #ff00ff;"
+                    "background: rgba(22, 28, 36, 0.52);'>"
+                    f"{chart_text['annot_top'].format(p=default_percentile, sr=selected_sr, gain=selected_gain)}"
+                    "</span>"
+                ),
+                showarrow=False,
+                bgcolor="rgba(0,0,0,0)",
+                bordercolor="rgba(0,0,0,0)",
+                borderwidth=0,
                 borderpad=4,
+                align="left",
                 font={"size": 11, "color": theme["annotation_text"]},
             ),
             dict(
                 x=best_ks_percentile,
-                y=101,
+                y=100.5,
                 xref="x",
                 yref="y",
-                text=chart_text["annot_ks"].format(ks=best_ks_value, p=best_ks_percentile),
+                text=(
+                    "<span style='display:inline-block;padding:6px 10px 6px 10px;"
+                    "border-left: 2px solid #ff00ff;"
+                    "background: rgba(22, 28, 36, 0.40);'>"
+                    f"{chart_text['annot_ks'].format(ks=best_ks_value, p=best_ks_percentile)}"
+                    "</span>"
+                ),
                 showarrow=False,
-                bgcolor=theme["annotation_alt_bg"],
-                bordercolor=theme["accent_violet"],
-                borderwidth=1,
+                bgcolor="rgba(0,0,0,0)",
+                bordercolor="rgba(0,0,0,0)",
+                borderwidth=0,
                 borderpad=4,
                 font={"size": 11, "color": theme["annotation_muted"]},
             ),
@@ -2151,6 +2193,78 @@ def EvaluateModel(
       return points[p - 1];
     }}
 
+    function ensureGainGradient(svg, gradientId) {{
+      const ns = "http://www.w3.org/2000/svg";
+      let defs = svg.querySelector("defs");
+      if (!defs) {{
+        defs = document.createElementNS(ns, "defs");
+        svg.insertBefore(defs, svg.firstChild);
+      }}
+      let gradient = svg.querySelector(`#${{gradientId}}`);
+      if (!gradient) {{
+        gradient = document.createElementNS(ns, "linearGradient");
+        gradient.setAttribute("id", gradientId);
+        gradient.setAttribute("x1", "0%");
+        gradient.setAttribute("x2", "0%");
+        gradient.setAttribute("y1", "0%");
+        gradient.setAttribute("y2", "100%");
+
+        const stopTop = document.createElementNS(ns, "stop");
+        stopTop.setAttribute("offset", "0%");
+        stopTop.setAttribute("stop-color", "#00e5ff");
+        stopTop.setAttribute("stop-opacity", "0.04");
+
+        const stopMiddle = document.createElementNS(ns, "stop");
+        stopMiddle.setAttribute("offset", "45%");
+        stopMiddle.setAttribute("stop-color", "#00e5ff");
+        stopMiddle.setAttribute("stop-opacity", "0.015");
+
+        const stopBottom = document.createElementNS(ns, "stop");
+        stopBottom.setAttribute("offset", "100%");
+        stopBottom.setAttribute("stop-color", "#00e5ff");
+        stopBottom.setAttribute("stop-opacity", "0");
+
+        gradient.appendChild(stopTop);
+        gradient.appendChild(stopMiddle);
+        gradient.appendChild(stopBottom);
+        defs.appendChild(gradient);
+      }}
+      return gradient;
+    }}
+
+    function applyGainChartEnhancements(divId) {{
+      const gd = document.getElementById(divId);
+      if (!gd) {{
+        return false;
+      }}
+      const svg = gd.querySelector("svg.main-svg");
+      const traces = gd.querySelectorAll(".scatterlayer .trace");
+      if (!svg || traces.length < 5) {{
+        return false;
+      }}
+      const gradientId = `${{divId}}-gain-gradient`;
+      ensureGainGradient(svg, gradientId);
+
+      const fillPath = traces[0].querySelector("path.js-fill");
+      if (fillPath) {{
+        fillPath.setAttribute("fill", `url(#${{gradientId}})`);
+        fillPath.style.fillOpacity = "1";
+      }}
+
+      const glowLine = traces[1].querySelector("path.js-line");
+      if (glowLine) {{
+        glowLine.style.filter = "drop-shadow(0 0 5px #00e5ff)";
+      }}
+
+      const modelLine = traces[2].querySelector("path.js-line");
+      if (modelLine) {{
+        modelLine.style.filter = "drop-shadow(0 0 5px #00e5ff)";
+        modelLine.style.strokeLinecap = "round";
+        modelLine.style.strokeLinejoin = "round";
+      }}
+      return true;
+    }}
+
     function updateKpis(point) {{
       document.getElementById("kpi-cutoff").textContent = `${{labelTop}} ${{point.p}}% (${{formatInt(point.clients)}})`;
       document.getElementById("kpi-gain").textContent = `${{point.gain.toFixed(1)}}%`;
@@ -2186,11 +2300,12 @@ def EvaluateModel(
         "shapes[0].x0": point.p,
         "shapes[0].x1": point.p,
         "annotations[0].x": point.p,
-        "annotations[0].y": point.gain,
-        "annotations[0].text": `${{labelTop}} ${{point.p}}% -> ${{labelSr}} ${{point.sr.toFixed(1)}}%, ${{labelGain}} ${{point.gain.toFixed(1)}}%`,
+        "annotations[0].y": Math.min(point.gain + 9, 102),
+        "annotations[0].text":
+          `<span style="display:inline-block;padding:6px 10px 6px 10px;border-left: 2px solid #ff00ff;background: rgba(22, 28, 36, 0.52);">${{labelTop}} ${{point.p}}% -> ${{labelSr}} ${{point.sr.toFixed(1)}}%, ${{labelGain}} ${{point.gain.toFixed(1)}}%</span>`,
         "annotations[1].x": ksPercentile
       }});
-      return true;
+      return applyGainChartEnhancements(divId);
     }}
 
     function updateSuccessFigure(divId, points, required) {{
@@ -2264,7 +2379,11 @@ def EvaluateModel(
     let retries = 0;
     const init = () => {{
       const ok = updateGainFigure("top-gain-figure", pointFor(Number(slider.value), cutoffData), bestKsPercentile)
+        && applyGainChartEnhancements("top-gain-figure")
         && updateDesiredRateUi(Number(desiredRateSlider.value));
+      if (campaignCutoffData.length > 0) {{
+        applyGainChartEnhancements("campaign-gain-figure");
+      }}
       applyCutoff(Number(slider.value));
       if (!ok && retries < 20) {{
         retries += 1;
