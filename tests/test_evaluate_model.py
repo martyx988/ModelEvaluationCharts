@@ -91,18 +91,17 @@ def test_generated_report_contains_interactive_cutoff_control(tmp_path) -> None:
     assert "plot-card-head" in html
 
 
-def test_generated_report_contains_gradient_shell_effect_hooks(tmp_path) -> None:
-    output = tmp_path / "report_gradient.html"
+def test_generated_report_contains_wrapper_only_animated_border_hooks(tmp_path) -> None:
+    output = tmp_path / "report_animated_border.html"
     EvaluateModel(output_html_path=output, seed=42)
     html = output.read_text(encoding="utf-8")
 
     assert 'class="wrap dashboard-shell"' in html
-    assert 'class="plot-card surface-card"' in html
-    assert "--shell-border-start" in html
-    assert ".dashboard-shell {" in html
-    assert ".surface-card {" in html
-    assert "border-box" in html
-    assert "radial-gradient(" in html
+    assert ".dashboard-shell::before" in html
+    assert "conic-gradient(" in html
+    assert "@keyframes dashboard-border-spin" in html
+    assert "animation: dashboard-border-spin" in html
+    assert "padding: 1px;" in html
 
 
 def test_generated_report_includes_campaign_selection_section_when_enabled(tmp_path) -> None:

@@ -1536,7 +1536,7 @@ def EvaluateModel(
         {labels["campaign_intro"]}
       </p>
       <div class="campaign-top-row">
-        <div class="plot-card surface-card" id="campaign-distribution-card">
+        <div class="plot-card" id="campaign-distribution-card">
           <div class="plot-card-head">
             <h3>{labels["campaign_distribution_title"]}</h3>
             <div class="tooltip-wrap">
@@ -1554,7 +1554,7 @@ def EvaluateModel(
           </div>
           {campaign_distribution_html}
         </div>
-        <div class="plot-card surface-card" id="campaign-rate-compare-card">
+        <div class="plot-card" id="campaign-rate-compare-card">
           <div class="plot-card-head">
             <h3>{labels["campaign_rate_compare_title"]}</h3>
             <div class="tooltip-wrap">
@@ -1574,7 +1574,7 @@ def EvaluateModel(
         </div>
       </div>
       <div class="chart-grid chart-grid-2">
-        <div class="plot-card surface-card" id="campaign-gain-card">
+        <div class="plot-card" id="campaign-gain-card">
           <div class="plot-card-head">
             <h3>{labels["campaign_gain_title"]}</h3>
             <div class="tooltip-wrap">
@@ -1591,7 +1591,7 @@ def EvaluateModel(
           </div>
           {campaign_gain_html}
         </div>
-        <div class="plot-card surface-card" id="campaign-success-card">
+        <div class="plot-card" id="campaign-success-card">
           <div class="plot-card-head">
             <h3>{labels["campaign_success_title"]}</h3>
             <div class="tooltip-wrap">
@@ -1625,70 +1625,96 @@ def EvaluateModel(
   <title>{labels["report_title"]}</title>
   <style>
     :root {{
-      --bg-night: #07111F;
-      --bg-night-soft: #13233D;
-      --panel: rgba(255, 255, 255, 0.96);
-      --panel-soft: rgba(248, 250, 252, 0.92);
+      --bg-top: #F8FAFC;
+      --bg-bottom: #EEF2FF;
+      --panel: #FFFFFF;
       --text-main: #0F172A;
       --text-muted: #475569;
-      --line-soft: rgba(148, 163, 184, 0.26);
-      --line-strong: rgba(148, 163, 184, 0.42);
+      --line-soft: #E2E8F0;
       --accent: #0057D9;
-      --shell-border-start: rgba(56, 189, 248, 0.72);
-      --shell-border-mid: rgba(129, 140, 248, 0.68);
-      --shell-border-end: rgba(236, 72, 153, 0.56);
-      --shell-glow-cyan: rgba(56, 189, 248, 0.18);
-      --shell-glow-violet: rgba(129, 140, 248, 0.16);
-      --card-border-start: rgba(96, 165, 250, 0.44);
-      --card-border-end: rgba(168, 85, 247, 0.30);
+      --border-cyan: rgba(56, 189, 248, 0.62);
+      --border-blue: rgba(0, 87, 217, 0.58);
+      --border-violet: rgba(129, 140, 248, 0.55);
+      --border-glow: rgba(59, 130, 246, 0.16);
     }}
     body {{
       margin: 0;
       padding: 32px 24px;
-      background:
-        radial-gradient(circle at 12% 14%, rgba(56, 189, 248, 0.18), transparent 24%),
-        radial-gradient(circle at 82% 10%, rgba(168, 85, 247, 0.18), transparent 20%),
-        radial-gradient(circle at 50% 100%, rgba(59, 130, 246, 0.12), transparent 26%),
-        linear-gradient(145deg, var(--bg-night) 0%, var(--bg-night-soft) 52%, #09111D 100%);
+      background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 100%);
       color: var(--text-main);
-      font-family: "Aptos", "Segoe UI", sans-serif;
+      font-family: "Segoe UI", Arial, sans-serif;
     }}
     .wrap {{
       max-width: 1360px;
       margin: 0 auto;
-      border-radius: 24px;
+      background: var(--panel);
+      border: 1px solid var(--line-soft);
+      border-radius: 14px;
+      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
       padding: 26px 24px 14px 24px;
       position: relative;
       overflow: hidden;
       isolation: isolate;
     }}
     .dashboard-shell {{
-      background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.95) 100%) padding-box,
-        linear-gradient(135deg, var(--shell-border-start) 0%, var(--shell-border-mid) 46%, var(--shell-border-end) 100%) border-box;
-      border: 1px solid transparent;
-      box-shadow:
-        0 28px 64px rgba(3, 7, 18, 0.45),
-        0 0 0 1px rgba(255, 255, 255, 0.24) inset,
-        0 0 72px var(--shell-glow-cyan),
-        0 0 120px var(--shell-glow-violet);
+      border-color: rgba(226, 232, 240, 0.7);
     }}
-    .dashboard-shell::after {{
+    .dashboard-shell > * {{
+      position: relative;
+      z-index: 1;
+    }}
+    .dashboard-shell::before {{
+      /* A masked conic-gradient creates an animated border ring without affecting layout. */
       content: "";
       position: absolute;
-      inset: 1px;
-      border-radius: 23px;
+      inset: 0;
+      border-radius: inherit;
+      padding: 1px;
       pointer-events: none;
       z-index: 0;
+      background: conic-gradient(
+        from 0deg,
+        rgba(56, 189, 248, 0.14) 0deg,
+        var(--border-cyan) 70deg,
+        var(--border-blue) 150deg,
+        var(--border-violet) 235deg,
+        rgba(56, 189, 248, 0.18) 310deg,
+        rgba(56, 189, 248, 0.14) 360deg
+      );
+      -webkit-mask:
+        linear-gradient(#000 0 0) content-box,
+        linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor;
+      mask:
+        linear-gradient(#000 0 0) content-box,
+        linear-gradient(#000 0 0);
+      mask-composite: exclude;
+      animation: dashboard-border-spin 14s linear infinite;
+      will-change: transform;
+      opacity: 0.95;
+    }}
+    .dashboard-shell::after {{
+      /* A low-opacity halo keeps the animated edge polished while preserving readability. */
+      content: "";
+      position: absolute;
+      inset: -10px;
+      border-radius: inherit;
       background:
-        radial-gradient(circle at 8% 10%, rgba(255, 255, 255, 0.82), transparent 24%),
-        radial-gradient(circle at 100% 0%, rgba(191, 219, 254, 0.32), transparent 22%);
-      opacity: 0.85;
+        radial-gradient(circle at top, var(--border-glow), transparent 42%),
+        radial-gradient(circle at 100% 0%, rgba(129, 140, 248, 0.12), transparent 30%);
+      filter: blur(20px);
+      opacity: 0.8;
+      z-index: -1;
+      pointer-events: none;
+    }}
+    /* Slow rotation keeps the border alive without becoming distracting. */
+    @keyframes dashboard-border-spin {{
+      to {{
+        transform: rotate(1turn);
+      }}
     }}
     .content-grid {{
       display: block;
-      position: relative;
-      z-index: 1;
     }}
     .chart-grid {{
       display: grid;
@@ -1699,20 +1725,12 @@ def EvaluateModel(
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }}
     .plot-card {{
+      border: 1px solid var(--line-soft);
+      border-radius: 12px;
+      background: #FFFFFF;
+      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
       padding: 8px 10px 6px 10px;
       min-width: 0;
-    }}
-    .surface-card {{
-      position: relative;
-      border: 1px solid transparent;
-      border-radius: 18px;
-      background:
-        linear-gradient(180deg, var(--panel) 0%, var(--panel-soft) 100%) padding-box,
-        linear-gradient(135deg, var(--card-border-start) 0%, rgba(148, 163, 184, 0.18) 45%, var(--card-border-end) 100%) border-box;
-      box-shadow:
-        0 16px 30px rgba(15, 23, 42, 0.10),
-        0 1px 0 rgba(255, 255, 255, 0.72) inset,
-        0 0 24px rgba(96, 165, 250, 0.08);
     }}
     .campaign-top-row {{
       display: grid;
@@ -1803,8 +1821,6 @@ def EvaluateModel(
       display: none;
     }}
     .header {{
-      position: relative;
-      z-index: 1;
       border-bottom: 1px solid var(--line-soft);
       padding-bottom: 12px;
       margin-bottom: 14px;
@@ -1837,11 +1853,12 @@ def EvaluateModel(
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
       gap: 10px;
-      position: relative;
-      z-index: 1;
     }}
     .kpi {{
+      border: 1px solid var(--line-soft);
+      border-radius: 10px;
       padding: 10px 12px;
+      background: linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%);
     }}
     .kpi-label {{
       font-size: 12px;
@@ -1870,15 +1887,6 @@ def EvaluateModel(
       align-items: center;
       gap: 10px;
       flex-wrap: wrap;
-      position: relative;
-      z-index: 1;
-      padding: 10px 12px;
-      border: 1px solid var(--line-soft);
-      border-radius: 18px;
-      background: rgba(255, 255, 255, 0.70);
-      box-shadow:
-        0 10px 24px rgba(15, 23, 42, 0.06),
-        0 1px 0 rgba(255, 255, 255, 0.72) inset;
     }}
     .controls label {{
       font-size: 13px;
@@ -1919,8 +1927,6 @@ def EvaluateModel(
       margin-top: 20px;
       border-top: 1px solid var(--line-soft);
       padding-top: 14px;
-      position: relative;
-      z-index: 1;
     }}
     .campaign-section h2 {{
       margin: 0 0 6px 0;
@@ -1946,19 +1952,19 @@ def EvaluateModel(
       </p>
     </div>
     <div class="kpis">
-      <div class="kpi surface-card">
+      <div class="kpi">
         <div class="kpi-label">{labels["kpi_selected_cutoff"]}</div>
         <div class="kpi-value" id="kpi-cutoff">{labels["top_word"]} {summary["selected_percentile"]}% ({summary["contacted_clients"]:,})</div>
       </div>
-      <div class="kpi surface-card">
+      <div class="kpi">
         <div class="kpi-label">{labels["kpi_lift_gain"]}</div>
         <div class="kpi-value" id="kpi-gain">{summary["gain_pct"]:.1f}%</div>
       </div>
-      <div class="kpi surface-card">
+      <div class="kpi">
         <div class="kpi-label">{labels["kpi_success_rate"]}</div>
         <div class="kpi-value" id="kpi-sr">{summary["success_rate_pct"]:.1f}%</div>
       </div>
-      <div class="kpi surface-card">
+      <div class="kpi">
         <div class="kpi-label">{labels["kpi_captured"]}</div>
         <div class="kpi-value" id="kpi-captured">{summary["captured_successes"]:,} / {summary["total_successes"]:,} ({summary["captured_pct"]:.1f}%)</div>
       </div>
@@ -1981,7 +1987,7 @@ def EvaluateModel(
     </div>
     <div class="content-grid">
       <div class="chart-grid chart-grid-2">
-        <div class="plot-card surface-card" id="top-gain-card">
+        <div class="plot-card" id="top-gain-card">
           <div class="plot-card-head">
             <h3>{labels["top_gain_title"]}</h3>
             <div class="tooltip-wrap">
@@ -1999,7 +2005,7 @@ def EvaluateModel(
           </div>
           {top_gain_html}
         </div>
-        <div class="plot-card surface-card" id="top-success-card">
+        <div class="plot-card" id="top-success-card">
           <div class="plot-card-head">
             <h3>{labels["top_success_title"]}</h3>
             <div class="tooltip-wrap">
