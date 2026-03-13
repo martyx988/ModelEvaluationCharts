@@ -76,9 +76,9 @@ def test_primary_figure_uses_dark_dashboard_theme() -> None:
     metrics = _build_metrics_by_contact_percentile(_performance_fixture())
     figure = _make_figure(metrics, default_percentile=20)
 
-    assert figure.layout.paper_bgcolor == "#1B3554"
-    assert figure.layout.plot_bgcolor == "#1B3554"
-    assert figure.layout.font.color == "#E6F1FF"
+    assert figure.layout.paper_bgcolor == "#161C24"
+    assert figure.layout.plot_bgcolor == "#161C24"
+    assert figure.layout.font.color == "#F0F2F5"
 
 
 def test_generated_report_contains_interactive_cutoff_control(tmp_path) -> None:
@@ -115,8 +115,8 @@ def test_generated_report_contains_wrapper_only_animated_border_hooks(tmp_path) 
     assert "from var(--angle)" in html
     assert "@keyframes rotate" in html
     assert "animation: rotate" in html
-    assert "inset: -4px;" in html
-    assert "padding: 4px;" in html
+    assert "inset: -2px;" in html
+    assert "padding: 2px;" in html
     assert "mask-composite: exclude;" in html
 
 
@@ -125,11 +125,12 @@ def test_generated_report_contains_dark_neon_shell_palette(tmp_path) -> None:
     EvaluateModel(output_html_path=output, seed=42)
     html = output.read_text(encoding="utf-8")
 
-    assert "--bg-top: #10233B;" in html
-    assert "--bg-bottom: #132943;" in html
-    assert "--panel: #1B3554;" in html
-    assert "--card-bg: #203B5D;" in html
-    assert "--text-main: #E6F1FF;" in html
+    assert "--bg-top: #080A0C;" in html
+    assert "--bg-bottom: #0B1016;" in html
+    assert "--panel: rgba(22, 28, 36, 0.8);" in html
+    assert "--card-bg: rgba(255, 255, 255, 0.03);" in html
+    assert "--text-main: #F0F2F5;" in html
+    assert "backdrop-filter: blur(12px);" in html
 
 
 def test_generated_report_includes_campaign_selection_section_when_enabled(tmp_path) -> None:

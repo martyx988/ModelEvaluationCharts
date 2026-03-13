@@ -377,31 +377,32 @@ def _resolve_chart_text(language: str) -> dict[str, str]:
 
 def _dashboard_theme() -> dict[str, str]:
     return {
-        "body_bg_top": "#10233B",
-        "body_bg_bottom": "#132943",
-        "panel": "#1B3554",
-        "card_bg": "#203B5D",
-        "card_bg_soft": "#1E3758",
-        "text_main": "#E6F1FF",
-        "text_muted": "#9FB6D8",
-        "line_soft": "rgba(120, 161, 207, 0.24)",
-        "line_strong": "rgba(135, 180, 235, 0.44)",
+        "body_bg_top": "#080A0C",
+        "body_bg_bottom": "#0B1016",
+        "panel": "rgba(22, 28, 36, 0.8)",
+        "panel_edge": "rgba(255, 255, 255, 0.06)",
+        "card_bg": "rgba(255, 255, 255, 0.03)",
+        "card_bg_soft": "rgba(255, 255, 255, 0.04)",
+        "text_main": "#F0F2F5",
+        "text_muted": "#919EAB",
+        "line_soft": "rgba(255, 255, 255, 0.10)",
+        "line_strong": "rgba(255, 255, 255, 0.18)",
         "color_1": "#ff00ff",
         "color_2": "#00e5ff",
         "accent_cyan": "#00E5FF",
-        "accent_blue": "#35A6FF",
-        "accent_magenta": "#FF4BD8",
-        "accent_violet": "#9A5CFF",
-        "axis_line": "rgba(153, 187, 235, 0.48)",
-        "grid": "rgba(122, 159, 205, 0.16)",
-        "annotation_bg": "rgba(11, 23, 39, 0.92)",
-        "annotation_alt_bg": "rgba(20, 35, 57, 0.92)",
-        "annotation_text": "#E6F1FF",
-        "annotation_muted": "#BED2EE",
-        "plot_bg": "#1B3554",
-        "plot_bg_alt": "#203B5D",
-        "modebar_bg": "rgba(27, 53, 84, 0.0)",
-        "bar_dim": "rgba(143, 165, 196, 0.32)",
+        "accent_blue": "#59B4FF",
+        "accent_magenta": "#FF00FF",
+        "accent_violet": "#C45CFF",
+        "axis_line": "rgba(255, 255, 255, 0.18)",
+        "grid": "rgba(255, 255, 255, 0.08)",
+        "annotation_bg": "rgba(8, 10, 12, 0.92)",
+        "annotation_alt_bg": "rgba(14, 18, 24, 0.92)",
+        "annotation_text": "#F0F2F5",
+        "annotation_muted": "#B9C2CC",
+        "plot_bg": "#161C24",
+        "plot_bg_alt": "#161C24",
+        "modebar_bg": "rgba(22, 28, 36, 0.0)",
+        "bar_dim": "rgba(145, 158, 171, 0.28)",
     }
 
 
@@ -1695,21 +1696,25 @@ def EvaluateModel(
       margin: 0;
       padding: 32px 24px;
       background:
-        radial-gradient(circle at 50% 18%, rgba(0, 229, 255, 0.08), transparent 18%),
-        radial-gradient(circle at 50% 82%, rgba(255, 0, 255, 0.06), transparent 24%),
+        radial-gradient(circle at 50% 16%, rgba(0, 229, 255, 0.06), transparent 18%),
+        radial-gradient(circle at 50% 82%, rgba(255, 0, 255, 0.05), transparent 22%),
         linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 100%);
       color: var(--text-main);
-      font-family: "Segoe UI", Arial, sans-serif;
+      font-family: "Inter", "Segoe UI", Arial, sans-serif;
+      min-height: 100vh;
     }}
     .wrap {{
       max-width: 1360px;
       margin: 0 auto;
       background: var(--panel);
-      border-radius: 14px;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--panel_edge);
+      border-radius: 24px;
       box-shadow:
-        0 20px 48px rgba(4, 10, 20, 0.42),
-        inset 0 0 0 1px rgba(255, 255, 255, 0.02);
-      padding: 26px 24px 14px 24px;
+        0 25px 50px -12px rgba(0, 0, 0, 0.5),
+        inset 0 1px 0 rgba(255, 255, 255, 0.02);
+      padding: 40px;
       position: relative;
       overflow: visible;
       isolation: isolate;
@@ -1725,9 +1730,9 @@ def EvaluateModel(
       /* This layer draws only the animated border ring, keeping the interior visually still. */
       content: "";
       position: absolute;
-      inset: -4px;
+      inset: -2px;
       border-radius: inherit;
-      padding: 4px;
+      padding: 2px;
       pointer-events: none;
       z-index: -1;
       background: conic-gradient(
@@ -1744,16 +1749,16 @@ def EvaluateModel(
         linear-gradient(#000 0 0) content-box,
         linear-gradient(#000 0 0);
       mask-composite: exclude;
-      animation: rotate 4s linear infinite;
-      opacity: 0.98;
+      animation: rotate 6s linear infinite;
+      opacity: 0.92;
     }}
     .dashboard-shell::after {{
       /* This blurred ring stays outside the wrapper to create the soft border glow. */
       content: "";
       position: absolute;
-      inset: -4px;
+      inset: -2px;
       border-radius: inherit;
-      padding: 4px;
+      padding: 2px;
       pointer-events: none;
       z-index: -1;
       background: conic-gradient(
@@ -1770,9 +1775,9 @@ def EvaluateModel(
         linear-gradient(#000 0 0) content-box,
         linear-gradient(#000 0 0);
       mask-composite: exclude;
-      filter: blur(25px);
-      opacity: 0.6;
-      animation: rotate 4s linear infinite;
+      filter: blur(20px);
+      opacity: 0.4;
+      animation: rotate 6s linear infinite;
     }}
     /* The registered custom property lets the gradient angle animate smoothly. */
     @keyframes rotate {{
@@ -1796,10 +1801,12 @@ def EvaluateModel(
     }}
     .plot-card {{
       border: 1px solid var(--line-soft);
-      border-radius: 12px;
+      border-radius: 16px;
       background: linear-gradient(180deg, var(--card-bg) 0%, var(--card-bg-soft) 100%);
-      box-shadow: 0 10px 24px rgba(4, 10, 20, 0.22);
-      padding: 8px 10px 6px 10px;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+      padding: 18px 16px 12px 16px;
       min-width: 0;
     }}
     .campaign-top-row {{
@@ -1814,13 +1821,13 @@ def EvaluateModel(
       align-items: center;
       justify-content: space-between;
       gap: 8px;
-      padding: 4px 6px 0 6px;
+      padding: 0 0 10px 0;
     }}
     .plot-card-head h3 {{
       margin: 0;
       font-size: 16px;
       color: var(--text-main);
-      font-weight: 700;
+      font-weight: 600;
     }}
     .tooltip-wrap {{
       position: relative;
@@ -1892,20 +1899,20 @@ def EvaluateModel(
     }}
     .header {{
       border-bottom: 1px solid var(--line-soft);
-      padding-bottom: 12px;
-      margin-bottom: 14px;
+      padding-bottom: 18px;
+      margin-bottom: 26px;
     }}
     h1 {{
       margin: 0 0 6px 0;
-      font-size: 30px;
+      font-size: 32px;
       font-weight: 700;
       color: var(--text-main);
-      letter-spacing: 0.2px;
+      letter-spacing: -0.02em;
     }}
     p {{
       margin: 0;
       color: var(--text-muted);
-      font-size: 15px;
+      font-size: 14px;
       line-height: 1.5;
     }}
     .meta {{
@@ -1919,26 +1926,34 @@ def EvaluateModel(
       color: var(--text-muted);
     }}
     .kpis {{
-      margin: 16px 0 8px 0;
+      margin: 0 0 24px 0;
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 10px;
+      gap: 20px;
     }}
     .kpi {{
       border: 1px solid var(--line-soft);
-      border-radius: 10px;
-      padding: 10px 12px;
-      background: linear-gradient(180deg, rgba(33, 62, 97, 0.96) 0%, rgba(28, 53, 84, 0.96) 100%);
+      border-radius: 16px;
+      padding: 20px;
+      background: var(--card-bg);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      transition: transform 0.2s ease, background 0.2s ease;
+    }}
+    .kpi:hover {{
+      transform: translateY(-2px);
+      background: rgba(255, 255, 255, 0.05);
     }}
     .kpi-label {{
       font-size: 12px;
       color: var(--text-muted);
-      margin-bottom: 4px;
+      margin-bottom: 8px;
       text-transform: uppercase;
-      letter-spacing: 0.03em;
+      letter-spacing: 0.08em;
+      font-weight: 500;
     }}
     .kpi-value {{
-      font-size: 20px;
+      font-size: 22px;
       font-weight: 700;
       color: var(--text-main);
       line-height: 1.2;
@@ -1952,21 +1967,23 @@ def EvaluateModel(
       padding-top: 10px;
     }}
     .controls {{
-      margin: 10px 0 12px 0;
+      margin: 0 0 24px 0;
       display: flex;
       align-items: center;
       gap: 10px;
       flex-wrap: wrap;
       border: 1px solid var(--line-soft);
-      border-radius: 12px;
-      padding: 10px 12px;
-      background: rgba(22, 43, 69, 0.74);
-      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+      border-radius: 16px;
+      padding: 18px 20px;
+      background: var(--card-bg);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
     }}
     .controls label {{
       font-size: 13px;
       color: var(--text-muted);
-      font-weight: 600;
+      font-weight: 500;
     }}
     #cutoff-slider {{
       width: min(460px, 90vw);
@@ -1989,8 +2006,8 @@ def EvaluateModel(
       font-size: 13px;
       color: var(--text-main);
       font-weight: 700;
-      background: rgba(255, 75, 216, 0.12);
-      border: 1px solid rgba(255, 75, 216, 0.42);
+      background: rgba(255, 0, 255, 0.10);
+      border: 1px solid rgba(255, 0, 255, 0.36);
       border-radius: 999px;
       padding: 2px 9px;
     }}

@@ -1,13 +1,15 @@
 # Task Contract
 
 ## Goal
-Align the final HTML dashboard to the provided dark neon screenshot by refining the page background, animated wrapper border/glow, and the internal dashboard color theme while keeping the existing content and structure.
+Align the final HTML dashboard to the provided premium dark glassmorphism reference by refining the page background, animated wrapper border/glow, and the internal dashboard color theme while keeping the existing content and structure.
 
 ## Acceptance Criteria
 - The generated HTML dashboard includes an animated gradient border on the main wrapper/container only.
 - The animated border uses a lightweight CSS pseudo-element approach so layout does not shift.
-- The page background and wrapper colors match the dark navy neon style from the provided screenshot more closely.
-- Internal dashboard surfaces, text, controls, and charts use a coherent dark theme that fits the wrapper effect.
+- The page background and wrapper colors match the darker charcoal glass-card style from the provided reference more closely.
+- Internal dashboard surfaces, text, controls, and charts use a coherent premium dark theme with clearer hierarchy.
+- KPI cards and chart cards feel like secondary inner cards inside the main glowing container.
+- The main wrapper and inner cards use restrained glassmorphism treatment (`backdrop-filter`, soft transparency, subtle borders) without hurting readability.
 - The effect is implemented with self-contained HTML/CSS only; no external CDN or remote asset is introduced.
 - Existing dashboard interactivity and report generation still work.
 - Automated tests cover the presence of the new visual-effect hooks in the generated HTML.
@@ -23,12 +25,13 @@ Align the final HTML dashboard to the provided dark neon screenshot by refining 
 - Assumption: the wrapper interior should remain visually static, so the pseudo-elements need a masked ring treatment rather than a full-surface animated fill.
 - Assumption: the palette should now follow the supplied magenta/cyan reference more directly.
 - Assumption: the screenshot implies a dark navy page background plus a slightly lighter blue wrapper surface rather than a black report interior.
+- Assumption: the newer reference supersedes the blue-heavy interpretation and should pull the wrapper/card surfaces toward a more neutral charcoal glass look.
 - Open question: none blocking for this slice.
 
 # Strategic Plan
 - Add regression coverage for the screenshot-aligned dark palette in the HTML shell and figures.
-- Update the dashboard wrapper CSS to match the dark neon screenshot more closely.
-- Update internal dashboard and chart colors so the full report feels stylistically consistent.
+- Update the dashboard wrapper CSS to match the premium charcoal glass-card direction more closely.
+- Update internal dashboard and chart colors so the full report feels restrained, layered, and stylistically consistent.
 - Generate and visually review the final HTML output, then document the result and any tradeoffs.
 
 # Tactical Plan
@@ -40,7 +43,7 @@ Align the final HTML dashboard to the provided dark neon screenshot by refining 
 - [x] Visually inspect the rendered report and refine if needed.
 - [x] Update the task log, checklist, and final summary with evidence.
 - [ ] Add failing test coverage for the screenshot-aligned dark palette.
-- [ ] Implement the dark neon HTML/CSS and chart theme updates.
+- [ ] Implement the premium glass-card HTML/CSS and chart theme updates.
 - [ ] Run `pytest` and regenerate the HTML report.
 - [ ] Visually inspect the rendered report and refine if needed.
 - [ ] Update the task log, checklist, and final summary with evidence.
@@ -55,8 +58,9 @@ Align the final HTML dashboard to the provided dark neon screenshot by refining 
   - Use the provided `@property --angle` animation pattern on the wrapper pseudo-elements.
   - Animate a `conic-gradient` subtly and continuously through the custom angle property.
   - Keep the animated gradient confined to the border ring, with only a soft outer glow beyond that.
-  - Use a dark navy background and slightly lighter blue report surface inspired by the screenshot.
-  - Carry the neon palette into charts and controls in a restrained way so readability remains high.
+  - Use a dark charcoal page background and a semi-transparent charcoal report surface.
+  - Create a clear card-in-card hierarchy with softer inner panels for KPIs and charts.
+  - Carry the neon palette into accents and borders more than into large surface fills.
   - Keep the output self-contained and offline-friendly.
 - Error handling:
   - No new runtime pathways expected; existing report generation should continue to fail loudly on existing validation errors.
@@ -76,9 +80,9 @@ Align the final HTML dashboard to the provided dark neon screenshot by refining 
 - Verify:
   - the page wrapper has a visible animated gradient border
   - the border animation is smooth and subtle
-  - the page background and wrapper surface match the dark neon screenshot direction
+  - the page background and wrapper surface match the premium dark reference direction
   - inner content remains fully readable and unchanged in layout
-  - charts and controls feel visually consistent with the dark wrapper theme
+  - charts, controls, and KPI cards feel visually consistent with the premium glass-card theme
   - controls and charts remain readable and interactive
   - no external asset dependency is required for styling
 
@@ -89,6 +93,7 @@ Align the final HTML dashboard to the provided dark neon screenshot by refining 
 - 2026-03-13: User supplied a more exact CSS reference using `@property --angle`, `conic-gradient(from var(--angle))`, and paired `::before`/`::after` layers; implementation should now follow that pattern more directly.
 - 2026-03-13: User further clarified that the magenta/cyan palette should match the new sample and that only the wrapper border ring, not the wrapper interior, should appear animated.
 - 2026-03-13: User requested a broader screenshot-aligned theme pass so the page background, wrapper surface, and dashboard colors all fit the dark neon style.
+- 2026-03-13: User supplied a stronger “pro-level” visual reference emphasizing a neutral charcoal glass container, clearer card hierarchy, refined typography, and restrained glow treatment.
 - 2026-03-13: QA replaced the earlier broad-style regression with a wrapper-only test for `.dashboard-shell::before`, `conic-gradient`, `@keyframes dashboard-border-spin`, and the pseudo-element border padding hook.
 - 2026-03-13: Developer narrowed the implementation to the main dashboard wrapper, removed the extra card-level effect, and added short CSS comments explaining the pseudo-element border ring, soft halo, and rotation animation.
 - 2026-03-13: Build/Verify passed with `python -m pytest tests\test_evaluate_model.py -q` (19 passed) and `python evaluate_model.py` (report regenerated).
@@ -106,6 +111,10 @@ Align the final HTML dashboard to the provided dark neon screenshot by refining 
 - 2026-03-13: Developer introduced a shared dark neon theme, updated the page and wrapper surfaces to navy-blue tones, recolored cards/controls/tooltips, and applied matching dark styling to the main and campaign Plotly figures.
 - 2026-03-13: Build/Verify passed with `python -m pytest tests\test_evaluate_model.py -q` (21 passed) and `python evaluate_model.py` (report regenerated).
 - 2026-03-13: Visual QA reviewed the screenshot-aligned theme revision in a local browser session served over `http://127.0.0.1:8769/model_evaluation_report.html`; the background, wrapper, border glow, and internal dashboard theme now align much more closely with the provided screenshot. Residual note: browser console showed only a missing `favicon.ico` request from the local ad-hoc HTTP server.
+- 2026-03-13: QA updated the dark-theme regression toward the premium glass-card reference, requiring charcoal shell colors, `backdrop-filter: blur(12px)`, and darker figure backgrounds.
+- 2026-03-13: Developer shifted the visual language away from blue-heavy surfaces to a charcoal glass container, softer inner KPI/chart cards, refined spacing/typography, and a more restrained neon-accent usage.
+- 2026-03-13: Build/Verify passed again with `python -m pytest tests\test_evaluate_model.py -q` (21 passed) and `python evaluate_model.py` (report regenerated).
+- 2026-03-13: Visual QA reviewed the premium glass-card revision in a local browser session served over `http://127.0.0.1:8770/model_evaluation_report.html`; the dashboard now reads much closer to the provided “pro-level” design direction while preserving content and interactions. Residual note: browser console showed only a missing `favicon.ico` request from the local ad-hoc HTTP server.
 
 # Final Summary
-Completed. The final HTML dashboard now uses a screenshot-aligned dark neon theme: a deep navy page background, a blue-toned wrapper surface, a magenta/cyan animated border ring and glow, and coordinated dark cards, controls, and Plotly figures. The existing dashboard structure and interactions were preserved, regression coverage was expanded for the dark palette, tests passed, the report was regenerated successfully, and the rendered result was visually reviewed in-browser.
+Completed. The final HTML dashboard now follows a more premium charcoal glassmorphism direction: a darker neutral page background, a semi-transparent glass main container with animated magenta/cyan border glow, layered inner KPI/chart cards, and coordinated dark Plotly figures. The existing dashboard structure and interactions were preserved, regression coverage was expanded for the revised palette, tests passed, the report was regenerated successfully, and the rendered result was visually reviewed in-browser.
